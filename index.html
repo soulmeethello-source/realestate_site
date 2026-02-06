@@ -746,7 +746,7 @@
     <footer class="footer">
         부동산 사이트 모음 &copy; 2026 &middot; 총 36개 사이트
         <div class="footer-visitor">
-            총 방문자 수: <span id="visitor-count">-</span>
+            오늘 방문자 수: <span id="visitor-today">-</span> &middot; 총 방문자 수: <span id="visitor-total">-</span>
         </div>
         <div class="footer-contact">
             사이트 추가 및 기능 건의 &middot; <a href="mailto:chioyhappy@gmail.com">chioyhappy@gmail.com</a>
@@ -756,12 +756,23 @@
     <script data-goatcounter="https://soulmeethello.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
     <script>
         function updateVisitorCount() {
-            var r = new XMLHttpRequest();
-            r.addEventListener('load', function() {
-                document.getElementById('visitor-count').innerText = JSON.parse(this.responseText).count.toLocaleString();
+            var path = encodeURIComponent(location.pathname);
+            var base = 'https://soulmeethello.goatcounter.com/counter/' + path + '.json';
+            var today = new Date().toISOString().slice(0, 10);
+
+            var r1 = new XMLHttpRequest();
+            r1.addEventListener('load', function() {
+                document.getElementById('visitor-total').innerText = JSON.parse(this.responseText).count.toLocaleString();
             });
-            r.open('GET', 'https://soulmeethello.goatcounter.com/counter/' + encodeURIComponent(location.pathname) + '.json');
-            r.send();
+            r1.open('GET', base);
+            r1.send();
+
+            var r2 = new XMLHttpRequest();
+            r2.addEventListener('load', function() {
+                document.getElementById('visitor-today').innerText = JSON.parse(this.responseText).count.toLocaleString();
+            });
+            r2.open('GET', base + '?start=' + today);
+            r2.send();
         }
         setTimeout(updateVisitorCount, 1000);
     </script>
