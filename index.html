@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부동산 사이트 모음</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f6f8;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #0051d5 0%, #007AFF 100%);
+            color: #fff;
+            padding: 48px 24px 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 15px;
+            opacity: 0.85;
+        }
+
+        /* Category Nav */
+        .category-nav {
+            background: #fff;
+            border-bottom: 1px solid #e2e5e9;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .category-nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            overflow-x: auto;
+            padding: 12px 0;
+            scrollbar-width: none;
+        }
+
+        .category-nav-inner::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-btn {
+            flex-shrink: 0;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            background: #fff;
+            color: #555;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover,
+        .nav-btn.active {
+            background: #007AFF;
+            color: #fff;
+            border-color: #007AFF;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px 64px;
+        }
+
+        /* Category Section */
+        .category-section {
+            margin-bottom: 40px;
+        }
+
+        .category-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #007AFF;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007AFF;
+        }
+
+        .category-icon {
+            width: 32px;
+            height: 32px;
+            background: #007AFF;
+            color: #fff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .category-count {
+            font-size: 13px;
+            font-weight: 400;
+            color: #888;
+            margin-left: auto;
+        }
+
+        /* Site Cards */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+        }
+
+        .site-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px 24px;
+            border: 1px solid #e8eaed;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+        }
+
+        .site-card:hover {
+            border-color: #007AFF;
+            box-shadow: 0 4px 16px rgba(0, 122, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .site-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .site-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #007AFF;
+        }
+
+        .site-card .sub-indicator {
+            font-size: 12px;
+            color: #999;
+            margin-left: 4px;
+        }
+
+        .external-icon {
+            color: #aaa;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .site-desc {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .site-url {
+            font-size: 12px;
+            color: #007AFF;
+            word-break: break-all;
+            opacity: 0.7;
+        }
+
+        .site-card:hover .site-url {
+            opacity: 1;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 32px 24px;
+            color: #999;
+            font-size: 13px;
+            border-top: 1px solid #e8eaed;
+        }
+
+        .footer-contact {
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        .footer-contact a {
+            color: #007AFF;
+            text-decoration: none;
+        }
+
+        .footer-contact a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 32px 16px 28px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .container {
+                padding: 20px 16px 48px;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .category-title {
+                font-size: 18px;
+            }
+        }
+
+        /* Search */
+        .search-box {
+            max-width: 480px;
+            margin: -24px auto 0;
+            position: relative;
+            z-index: 50;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 20px 14px 44px;
+            border: 1px solid #e2e5e9;
+            border-radius: 12px;
+            font-size: 15px;
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: #007AFF;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 16px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>부동산 사이트 모음</h1>
+        <p>부동산 투자 및 분석에 유용한 사이트를 카테고리별로 정리했습니다</p>
+    </div>
+
+    <div class="search-box">
+        <span class="search-icon">&#128269;</span>
+        <input type="text" class="search-input" id="searchInput" placeholder="사이트명 또는 키워드로 검색..." oninput="filterSites()">
+    </div>
+
+    <nav class="category-nav">
+        <div class="category-nav-inner" id="categoryNav">
+            <a href="#all" class="nav-btn active" onclick="scrollToCategory(event, 'all')">전체</a>
+            <a href="#종합" class="nav-btn" onclick="scrollToCategory(event, '종합')">종합</a>
+            <a href="#아파트" class="nav-btn" onclick="scrollToCategory(event, '아파트')">아파트</a>
+            <a href="#청약" class="nav-btn" onclick="scrollToCategory(event, '청약')">청약</a>
+            <a href="#데이터통계" class="nav-btn" onclick="scrollToCategory(event, '데이터통계')">데이터/통계</a>
+            <a href="#상권" class="nav-btn" onclick="scrollToCategory(event, '상권')">상권</a>
+            <a href="#시세" class="nav-btn" onclick="scrollToCategory(event, '시세')">시세</a>
+            <a href="#세금" class="nav-btn" onclick="scrollToCategory(event, '세금')">세금</a>
+            <a href="#재개발재건축" class="nav-btn" onclick="scrollToCategory(event, '재개발재건축')">재개발/재건축</a>
+            <a href="#경매공매" class="nav-btn" onclick="scrollToCategory(event, '경매공매')">경매/공매</a>
+            <a href="#대출중개" class="nav-btn" onclick="scrollToCategory(event, '대출중개')">대출/공인중개사</a>
+            <a href="#등기대장" class="nav-btn" onclick="scrollToCategory(event, '등기대장')">등기/대장</a>
+        </div>
+    </nav>
+
+    <div class="container" id="content">
+
+        <!-- 종합 -->
+        <section class="category-section" id="cat-종합" data-category="종합">
+            <h2 class="category-title">
+                <span class="category-icon">&#127968;</span>
+                종합
+                <span class="category-count">1개 사이트</span>
+            </h2>
+            <div class="cards-grid">
+                <a href="https://land.naver.com/" target="_blank" rel="noopener" class="site-card" data-name="네이버 부동산" data-desc="매물 검색">
+                    <div class="site-card-header">
+                        <span class="site-name">네이버 부동산</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">매물 검색</div>
+                    <div class="site-url">land.naver.com</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 아파트 -->
+        <section class="category-section" id="cat-아파트" data-category="아파트">
+            <h2 class="category-title">
+                <span class="category-icon">&#127970;</span>
+                아파트
+                <span class="category-count">2개 사이트</span>
+            </h2>
+            <div class="cards-grid">
+                <a href="https://hogangnono.com/" target="_blank" rel="noopener" class="site-card" data-name="호갱노노" data-desc="아파트 시세, 직장인 연봉">
+                    <div class="site-card-header">
+                        <span class="site-name">호갱노노</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">아파트 시세, 직장인 연봉</div>
+                    <div class="site-url">hogangnono.com</div>
+                </a>
+                <a href="https://asil.kr" target="_blank" rel="noopener" class="site-card" data-name="아실" data-desc="아파트 시세, 학군비교, 재개발 구역계 간략 확인">
+                    <div class="site-card-header">
+                        <span class="site-name">아실</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">아파트 시세, 학군비교, 재개발 구역계 간략 확인</div>
+                    <div class="site-url">asil.kr</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 청약 -->
+        <section class="category-section" id="cat-청약" data-category="청약">
+            <h2 class="category-title">
+                <span class="category-icon">&#128196;</span>
+                청약
+                <span class="category-count">1개 사이트</span>
+            </h2>
+            <div class="cards-grid">
+                <a href="https://apply.lh.or.kr/" target="_blank" rel="noopener" class="site-card" data-name="LH청약+" data-desc="분양주택, 임대주택, 토지, 상가">
+                    <div class="site-card-header">
+                        <span class="site-name">LH청약+</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">분양주택, 임대주택, 토지, 상가</div>
+                    <div class="site-url">apply.lh.or.kr</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 데이터/통계 -->
+        <section class="category-section" id="cat-데이터통계" data-category="데이터통계">
+            <h2 class="category-title">
+                <span class="category-icon">&#128202;</span>
+                데이터/통계
+                <span class="category-count">4개 사이트</span>
+            </h2>
+            <div class="cards-grid">
+                <a href="https://data.kbland.kr/" target="_blank" rel="noopener" class="site-card" data-name="KB부동산 데이터허브" data-desc="KB주택가격동향, 주택공급실적, 미분양현황">
+                    <div class="site-card-header">
+                        <span class="site-name">KB부동산 데이터허브</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">KB주택가격동향, 주택공급실적, 미분양현황</div>
+                    <div class="site-url">data.kbland.kr</div>
+                </a>
+                <a href="https://data.kbland.kr/databoard" target="_blank" rel="noopener" class="site-card" data-name="주택가격동향조사" data-desc="주간 아파트 매매가격지수, 매매 평균가격">
+                    <div class="site-card-header">
+                        <span class="site-name"><span class="sub-indicator">&#8627;</span> 주택가격동향조사</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">주간 아파트 매매가격지수, 매매 평균가격</div>
+                    <div class="site-url">data.kbland.kr/databoard</div>
+                </a>
+                <a href="https://data.kbland.kr/publicdata/land" target="_blank" rel="noopener" class="site-card" data-name="토지 가격변동과 거래량" data-desc="토지시장 심리지수">
+                    <div class="site-card-header">
+                        <span class="site-name"><span class="sub-indicator">&#8627;</span> 토지 가격변동과 거래량</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">토지시장 심리지수</div>
+                    <div class="site-url">data.kbland.kr/publicdata/land</div>
+                </a>
+                <a href="https://www.reb.or.kr/r-one/portal/main/indexPage.do" target="_blank" rel="noopener" class="site-card" data-name="부동산통계정보" data-desc="매매가격지수 변동률, 지가변동률">
+                    <div class="site-card-header">
+                        <span class="site-name">부동산통계정보</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">매매가격지수 변동률, 지가변동률</div>
+                    <div class="site-url">reb.or.kr</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 상권 -->
+        <section class="category-section" id="cat-상권" data-category="상권">
+            <h2 class="category-title">
+                <span class="category-icon">&#128717;</span>
+                상권
+                <span class="category-count">1개 사이트</span>
+            </h2>
+            <div class="cards-grid">
+                <a href="http://www.biz-gis.com/" target="_blank" rel="noopener" class="site-card" data-name="X-Ray Map" data-desc="상권분석">
+                    <div class="site-card-header">
+                        <span class="site-name">X-Ray Map</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">상권분석</div>
+                    <div class="site-url">biz-gis.com</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 시세 -->
+        <section class="category-section" id="cat-시세" data-category="시세">
+            <h2 class="category-title">
+                <span class="category-icon">&#128176;</span>
+                시세
+                <span class="category-count">4개 사이트</span>
+            </h2>
+            <div class="cards-grid">
+                <a href="https://rt.molit.go.kr/" target="_blank" rel="noopener" class="site-card" data-name="국토교통부 실거래가공개시스템" data-desc="시세 정보 원본데이터">
+                    <div class="site-card-header">
+                        <span class="site-name">국토교통부 실거래가공개시스템</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">시세 정보 원본데이터</div>
+                    <div class="site-url">rt.molit.go.kr</div>
+                </a>
+                <a href="https://property.bdsplanet.com/" target="_blank" rel="noopener" class="site-card" data-name="부동산플래닛" data-desc="상가, 토지 실거래가">
+                    <div class="site-card-header">
+                        <span class="site-name">부동산플래닛</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">상가, 토지 실거래가</div>
+                    <div class="site-url">property.bdsplanet.com</div>
+                </a>
+                <a href="https://www.disco.re/" target="_blank" rel="noopener" class="site-card" data-name="디스코" data-desc="상가, 토지 실거래가">
+                    <div class="site-card-header">
+                        <span class="site-name">디스코</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">상가, 토지 실거래가</div>
+                    <div class="site-url">disco.re</div>
+                </a>
+                <a href="https://ddangya.com/home/map" target="_blank" rel="noopener" class="site-card" data-name="땅야" data-desc="토지 실거래가">
+                    <div class="site-card-header">
+                        <span class="site-name">땅야</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">토지 실거래가</div>
+                    <div class="site-url">ddangya.com</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 세금 -->
+        <section class="category-section" id="cat-세금" data-category="세금">
+            <h2 class="category-title">
+                <span class="category-icon">&#128178;</span>
+                세금
+                <span class="category-count">1개 사이트</span>
+            </h2>
+            <div class="cards-grid">
+                <a href="https://xn--989a00af8jnslv3dba.com/" target="_blank" rel="noopener" class="site-card" data-name="부동산 계산기" data-desc="중개수수료, 양도소득세, 취득세">
+                    <div class="site-card-header">
+                        <span class="site-name">부동산 계산기</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">중개수수료, 양도소득세, 취득세</div>
+                    <div class="site-url">부동산계산기.com</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 재개발/재건축 -->
+        <section class="category-section" id="cat-재개발재건축" data-category="재개발재건축">
+            <h2 class="category-title">
+                <span class="category-icon">&#127959;</span>
+                재개발/재건축
+                <span class="category-count">14개 사이트</span>
+            </h2>
+            <div class="cards-grid">
+                <a href="https://cleanup.seoul.go.kr/" target="_blank" rel="noopener" class="site-card" data-name="정비사업 정보몽땅" data-desc="재개발재건축 추진현황">
+                    <div class="site-card-header">
+                        <span class="site-name">정비사업 정보몽땅</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">재개발재건축 추진현황</div>
+                    <div class="site-url">cleanup.seoul.go.kr</div>
+                </a>
+                <a href="https://www.seoul.go.kr/news/news_report.do?bbsNo=158&cntPerPage=10&curPage=1&srchText=%EB%8F%84%EC%8B%9C%EA%B3%84%ED%9A%8D%EC%9C%84%EC%9B%90%ED%9A%8C" target="_blank" rel="noopener" class="site-card" data-name="서울특별시 도시계획위원회 보도자료" data-desc="도시계획위원회(정비사업 지정) 보도자료 원문, 재개발 재건축 뉴스">
+                    <div class="site-card-header">
+                        <span class="site-name">서울시 도시계획위원회 보도자료</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">도시계획위원회(정비사업 지정) 보도자료 원문, 재개발 재건축 뉴스</div>
+                    <div class="site-url">seoul.go.kr</div>
+                </a>
+                <a href="https://asil.kr" target="_blank" rel="noopener" class="site-card" data-name="아실" data-desc="아파트 시세, 학군비교, 재개발 구역계 간략 확인">
+                    <div class="site-card-header">
+                        <span class="site-name">아실</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">아파트 시세, 학군비교, 재개발 구역계 간략 확인</div>
+                    <div class="site-url">asil.kr</div>
+                </a>
+                <a href="https://rt.molit.go.kr/" target="_blank" rel="noopener" class="site-card" data-name="국토교통부 실거래가공개시스템" data-desc="시세 정보 원본데이터">
+                    <div class="site-card-header">
+                        <span class="site-name">국토교통부 실거래가공개시스템</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">시세 정보 원본데이터</div>
+                    <div class="site-url">rt.molit.go.kr</div>
+                </a>
+                <a href="https://jaegebal.com/" target="_blank" rel="noopener" class="site-card" data-name="재개발닷컴" data-desc="구역별 실거래가, 진행상황 정보">
+                    <div class="site-card-header">
+                        <span class="site-name">재개발닷컴</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">구역별 실거래가, 진행상황 정보</div>
+                    <div class="site-url">jaegebal.com</div>
+                </a>
+                <a href="http://udp.or.kr/v2.0/" target="_blank" rel="noopener" class="site-card" data-name="도시개발신문" data-desc="재개발 재건축 뉴스">
+                    <div class="site-card-header">
+                        <span class="site-name">도시개발신문</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">재개발 재건축 뉴스</div>
+                    <div class="site-url">udp.or.kr</div>
+                </a>
+                <a href="https://www.housingherald.co.kr/" target="_blank" rel="noopener" class="site-card" data-name="하우징헤럴드" data-desc="재개발 재건축 뉴스">
+                    <div class="site-card-header">
+                        <span class="site-name">하우징헤럴드</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">재개발 재건축 뉴스</div>
+                    <div class="site-url">housingherald.co.kr</div>
+                </a>
+                <a href="https://news.seoul.go.kr/citybuild/archives/516139" target="_blank" rel="noopener" class="site-card" data-name="서울특별시청 모아타운" data-desc="서울특별시청 모아타운 추진현황">
+                    <div class="site-card-header">
+                        <span class="site-name">서울특별시청 모아타운</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">서울특별시청 모아타운 추진현황</div>
+                    <div class="site-url">news.seoul.go.kr</div>
+                </a>
+                <a href="https://www.jungnang.go.kr/portal/main/contents.do?menuNo=201365" target="_blank" rel="noopener" class="site-card" data-name="중랑구청 모아타운" data-desc="중랑구 구역별 모아타운 추진현황">
+                    <div class="site-card-header">
+                        <span class="site-name">중랑구청 모아타운</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">중랑구 구역별 모아타운 추진현황</div>
+                    <div class="site-url">jungnang.go.kr</div>
+                </a>
+                <a href="https://www.gangseo.seoul.kr/build/bui010214" target="_blank" rel="noopener" class="site-card" data-name="강서구청 모아타운" data-desc="강서구 구역별 모아타운 추진현황">
+                    <div class="site-card-header">
+                        <span class="site-name">강서구청 모아타운</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">강서구 구역별 모아타운 추진현황</div>
+                    <div class="site-url">gangseo.seoul.kr</div>
+                </a>
+                <a href="https://www.geumcheon.go.kr/portal/rebuildWebList.do?key=4266" target="_blank" rel="noopener" class="site-card" data-name="금천구청 모아타운" data-desc="금천구 구역별 모아타운 추진현황">
+                    <div class="site-card-header">
+                        <span class="site-name">금천구청 모아타운</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">금천구 구역별 모아타운 추진현황</div>
+                    <div class="site-url">geumcheon.go.kr</div>
+                </a>
+                <a href="https://www.gangbuk.go.kr:18000/portal/main/contents.do?menuNo=200553" target="_blank" rel="noopener" class="site-card" data-name="강북구청 모아타운" data-desc="강북구 구역별 모아타운 추진현황">
+                    <div class="site-card-header">
+                        <span class="site-name">강북구청 모아타운</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">강북구 구역별 모아타운 추진현황</div>
+                    <div class="site-url">gangbuk.go.kr</div>
+                </a>
+                <a href="https://www.dobong.go.kr/Contents.asp?code=10010101" target="_blank" rel="noopener" class="site-card" data-name="도봉구청 모아타운" data-desc="도봉구 구역별 모아타운 추진현황">
+                    <div class="site-card-header">
+                        <span class="site-name">도봉구청 모아타운</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">도봉구 구역별 모아타운 추진현황</div>
+                    <div class="site-url">dobong.go.kr</div>
+                </a>
+                <a href="https://www.gwanak.go.kr/site/gwanak/08/10802050900002024030404.jsp" target="_blank" rel="noopener" class="site-card" data-name="관악구청 모아타운" data-desc="관악구청 모아타운 추진현황">
+                    <div class="site-card-header">
+                        <span class="site-name">관악구청 모아타운</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">관악구청 모아타운 추진현황</div>
+                    <div class="site-url">gwanak.go.kr</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 경매/공매 -->
+        <section class="category-section" id="cat-경매공매" data-category="경매공매">
+            <h2 class="category-title">
+                <span class="category-icon">&#128296;</span>
+                경매/공매
+                <span class="category-count">3개 사이트</span>
+            </h2>
+            <div class="cards-grid">
+                <a href="https://www.courtauction.go.kr/pgj/index.on" target="_blank" rel="noopener" class="site-card" data-name="대법원 경매정보" data-desc="경매">
+                    <div class="site-card-header">
+                        <span class="site-name">대법원 경매정보</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">경매</div>
+                    <div class="site-url">courtauction.go.kr</div>
+                </a>
+                <a href="https://www.onbid.co.kr/op/dsa/main/main.do" target="_blank" rel="noopener" class="site-card" data-name="온비드" data-desc="공매">
+                    <div class="site-card-header">
+                        <span class="site-name">온비드</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">공매</div>
+                    <div class="site-url">onbid.co.kr</div>
+                </a>
+                <a href="https://www.hauction.co.kr/" target="_blank" rel="noopener" class="site-card" data-name="행크옥션" data-desc="경매, 공매, 권리분석, 신탁공매, 초품빌, 빌라시세 연동, 공주가 연동">
+                    <div class="site-card-header">
+                        <span class="site-name">행크옥션</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">경매, 공매, 권리분석, 신탁공매, 초품빌, 빌라시세 연동, 공주가 연동</div>
+                    <div class="site-url">hauction.co.kr</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 대출/공인중개사 -->
+        <section class="category-section" id="cat-대출중개" data-category="대출중개">
+            <h2 class="category-title">
+                <span class="category-icon">&#129309;</span>
+                대출/공인중개사
+                <span class="category-count">2개 사이트</span>
+            </h2>
+            <div class="cards-grid">
+                <a href="https://www.findsr.kr/" target="_blank" rel="noopener" class="site-card" data-name="우리동네 대출상담사" data-desc="대출상담사 연락처">
+                    <div class="site-card-header">
+                        <span class="site-name">우리동네 대출상담사</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">대출상담사 연락처</div>
+                    <div class="site-url">findsr.kr</div>
+                </a>
+                <a href="https://karhanbang.com/main/" target="_blank" rel="noopener" class="site-card" data-name="한방부동산" data-desc="공인중개사 연락처">
+                    <div class="site-card-header">
+                        <span class="site-name">한방부동산</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">공인중개사 연락처</div>
+                    <div class="site-url">karhanbang.com</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- 등기/대장 -->
+        <section class="category-section" id="cat-등기대장" data-category="등기대장">
+            <h2 class="category-title">
+                <span class="category-icon">&#127963;</span>
+                등기/대장
+                <span class="category-count">3개 사이트</span>
+            </h2>
+            <div class="cards-grid">
+                <a href="https://www.iros.go.kr/" target="_blank" rel="noopener" class="site-card" data-name="인터넷등기소" data-desc="등기부등본">
+                    <div class="site-card-header">
+                        <span class="site-name">인터넷등기소</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">등기부등본</div>
+                    <div class="site-url">iros.go.kr</div>
+                </a>
+                <a href="https://www.gov.kr/mw/AA020InfoCappView.do?HighCtgCD=A09005&CappBizCD=15000000098&tp_seq=01" target="_blank" rel="noopener" class="site-card" data-name="정부24 건축물대장" data-desc="건축물대장 등본(초본) 발급(열람)">
+                    <div class="site-card-header">
+                        <span class="site-name">정부24 건축물대장</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">건축물대장 등본(초본) 발급(열람)</div>
+                    <div class="site-url">gov.kr</div>
+                </a>
+                <a href="https://www.gov.kr/main?a=AA020InfoCappViewApp&HighCtgCD=A09005&CappBizCD=13100000026" target="_blank" rel="noopener" class="site-card" data-name="정부24 토지대장" data-desc="토지(임야)대장 등본 발급(열람)">
+                    <div class="site-card-header">
+                        <span class="site-name">정부24 토지대장</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">토지(임야)대장 등본 발급(열람)</div>
+                    <div class="site-url">gov.kr</div>
+                </a>
+            </div>
+        </section>
+
+        <div class="no-results" id="noResults">
+            검색 결과가 없습니다.
+        </div>
+    </div>
+
+    <footer class="footer">
+        부동산 사이트 모음 &copy; 2026 &middot; 총 36개 사이트
+        <div class="footer-contact">
+            사이트 추가 및 기능 건의 &middot; <a href="mailto:chioyhappy@gmail.com">chioyhappy@gmail.com</a>
+        </div>
+    </footer>
+
+    <script>
+        function scrollToCategory(e, category) {
+            e.preventDefault();
+
+            // Update active nav button
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+
+            if (category === 'all') {
+                document.querySelectorAll('.category-section').forEach(sec => sec.style.display = '');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
+            // Show only selected category
+            document.querySelectorAll('.category-section').forEach(sec => {
+                sec.style.display = sec.dataset.category === category ? '' : 'none';
+            });
+
+            const target = document.getElementById('cat-' + category);
+            if (target) {
+                const navHeight = document.querySelector('.category-nav').offsetHeight;
+                const top = target.getBoundingClientRect().top + window.scrollY - navHeight - 16;
+                window.scrollTo({ top, behavior: 'smooth' });
+            }
+        }
+
+        function filterSites() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            let anyVisible = false;
+
+            // Reset nav
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('.nav-btn[href="#all"]').classList.add('active');
+
+            document.querySelectorAll('.category-section').forEach(section => {
+                const cards = section.querySelectorAll('.site-card');
+                let sectionVisible = false;
+
+                cards.forEach(card => {
+                    const name = (card.dataset.name || '').toLowerCase();
+                    const desc = (card.dataset.desc || '').toLowerCase();
+                    const category = (section.dataset.category || '').toLowerCase();
+                    const match = !query || name.includes(query) || desc.includes(query) || category.includes(query);
+                    card.style.display = match ? '' : 'none';
+                    if (match) sectionVisible = true;
+                });
+
+                section.style.display = sectionVisible ? '' : 'none';
+                if (sectionVisible) anyVisible = true;
+            });
+
+            document.getElementById('noResults').style.display = anyVisible ? 'none' : 'block';
+        }
+    </script>
+</body>
+</html>
