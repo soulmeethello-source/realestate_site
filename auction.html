@@ -113,6 +113,17 @@
         .result.show { display: block; }
         .settings-summary { font-size: 12px; color: #555; background: #eef5ff; border: 1px solid #dbe8ff; border-radius: 9px; padding: 8px 12px; margin-bottom: 16px; line-height: 1.5; }
         .settings-summary b { color: #007AFF; }
+        .btn-img { font-size: 12.5px; padding: 7px 14px; border: 1px solid #cdd5df; border-radius: 8px; background: #fff; color: #007AFF; cursor: pointer; font-family: inherit; font-weight: 600; }
+        .btn-img:hover { background: #eef5ff; }
+        .calc-btn { margin-top: 5px; font-size: 11px; padding: 3px 9px; border: 1px solid #cdd5df; border-radius: 6px; background: #fff; color: #007AFF; cursor: pointer; font-family: inherit; white-space: nowrap; }
+        .calc-btn:hover { background: #eef5ff; }
+        .calc-detail td { background: #f7f9fc !important; font-size: 12px; color: #555; line-height: 1.85; padding: 12px 14px !important; text-align: left !important; }
+        .calc-detail .ln { display: block; }
+        .calc-detail b { color: #222; font-weight: 700; }
+        [data-theme="dark"] .btn-img { background: #262a32; border-color: #363b45; color: #6db3ff; }
+        [data-theme="dark"] .calc-btn { background: #262a32; border-color: #363b45; color: #6db3ff; }
+        [data-theme="dark"] .calc-detail td { background: #1b1f27 !important; color: #aab0bb; }
+        [data-theme="dark"] .calc-detail b { color: #e4e6eb; }
         .headline-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
         .hl {
             border-radius: 14px; padding: 20px; text-align: center; color: #fff;
@@ -239,6 +250,8 @@
         [data-theme="dark"] .bd td.c { color: #7c828d; }
         [data-theme="dark"] .bd td.v { color: #e4e6eb; }
         [data-theme="dark"] .bd tr.sec td { background: #222a36; color: #4f9dff; }
+        [data-theme="dark"] .bd.cmp .stagstrat { color: #e4e6eb; }
+        [data-theme="dark"] .bd.cmp .stagsub { color: #9aa0ab; }
         [data-theme="dark"] .bd tr.total td.v, [data-theme="dark"] .bd td.v.pos { color: #3fcf86; }
         [data-theme="dark"] .bd tr.neg td.v, [data-theme="dark"] .bd td.v.negv { color: #ff6b6b; }
         [data-theme="dark"] .bd.cmp tr.best td { background: #14342a; }
@@ -574,9 +587,8 @@
 
         // 명의/전략 시나리오
         const SCENARIOS = [
-            {key:'p1',  name:'개인 양도세',   sub:'1년 미만(단기)', entity:'personal', holding:'lt1'},
-            {key:'p2',  name:'개인 양도세',   sub:'1~2년',          entity:'personal', holding:'lt2'},
-            {key:'p3',  name:'개인 양도세',   sub:'2년 이상(기본)', entity:'personal', holding:'gte2'},
+            {key:'p1',  name:'개인 양도세',   sub:'1년 미만', entity:'personal', holding:'lt1'},
+            {key:'p2',  name:'개인 양도세',   sub:'1~2년',    entity:'personal', holding:'lt2'},
             {key:'biz1',name:'매매사업자(1주택자)', sub:'종합소득세',          entity:'business', holding:'lt1', bizMulti:false},
             {key:'bizN',name:'매매사업자(다주택자)', sub:'비교과세·매도시점',   entity:'business', holding:'lt1', bizMulti:true},
             {key:'corp',name:'법인',          sub:'법인세',         entity:'corp',     holding:'lt1'},
@@ -736,13 +748,20 @@
             const acq = bid*ar;
             const costTotal = base.otherCost + acq;
             const gross = sell - bid - costTotal;                  // 실제 세전 차익(전 비용 반영)
-            // 개인 양도세 필요경비 불인정 항목 → 과세표준에 가산
-            // (수익적지출 수선·도배 + 대출이자·중도상환수수료·보유중 관리비·입주청소·명도비)
-            // 인정 필요경비: 취득세·법무비·중개비·자본적지출(인테리어) 만 차감
+            // 양도소득세 기준 필요경비 불인정 처리
+            // - 수선·도배(수익적 지출)는 개인 양도세·매매사업자 모두 불인정 → 과세표준에 가산
+            // - 개인 양도세는 추가로 대출이자·중도상환·관리·청소·명도도 불인정 + 기본공제 250만
+            // - 인정 필요경비: 취득세·법무비·중개비·자본적지출(인테리어)
             const personalTransfer = (sc.entity==='personal' && sc.holding!=='exempt');
+            // 필요경비 불인정(과세표준 가산) — 명의별:
+            //  개인 양도세 : 수선도배+대출이자+중도상환+청소+관리+명도 (전부) + 기본공제 250만
+            //  매매사업자  : 수선도배 + 명도비(미납·체납관리비·강제집행 이사/보관비) 불인정
+            //  법인        : 수선도배만 불인정 (명도비는 인정)
             const nonDeduct = personalTransfer
                 ? (base.interiorRev + base.interest + base.prepayFee + base.clean + base.mgmt + base.evict)
-                : 0;
+                : (sc.holding==='exempt' ? 0
+                   : sc.entity==='business' ? (base.interiorRev + base.evict)
+                   : base.interiorRev);
             const deduction = personalTransfer ? 2500000 : 0;
             const taxBase = Math.max(0, gross + nonDeduct - deduction);
 
@@ -750,7 +769,7 @@
             if(sc.entity==='business' && sc.bizMulti){
                 // 매매사업자(다주택자) 비교과세 = MAX(종합소득세, 단기 양도세 상당액)
                 // 양도세 상당액은 양도세 필요경비 룰(불인정 항목 가산)로 과세표준 산정
-                const bizBase = Math.max(0, gross);
+                const bizBase = Math.max(0, gross + base.interiorRev + base.evict);  // 수선·도배·명도비 불인정
                 const bizTax = prog(other+bizBase, INCOME) - prog(other, INCOME);
                 const transferBase = Math.max(0, gross + (base.interiorRev + base.interest + base.prepayFee + base.clean + base.mgmt + base.evict) - 2500000);
                 const shortRate = (prop==='house') ? 0.70 : 0.50;   // 1년 미만 단기세율
@@ -791,6 +810,7 @@
             const b0=computeBase(bid,sell); // 공통 비용(취득세 제외)
 
             let h='';
+            h+='<div id="imgBtnBar" style="text-align:right;margin:-6px 0 12px;"><button class="btn-img" onclick="saveImage()">🖼️ 이미지로 저장</button></div>';
             h+=settingsSummaryHTML();
             h+='<div class="headline-row">';
             h+=hl('slate','매도가(시세)',fmt(sell)+'원',toKorean(sell));
@@ -804,18 +824,22 @@
             h+='<tr class="sec"><td>전략</td><td style="text-align:right">취득세</td><td style="text-align:right">양도·소득세<br><span style="font-weight:400">(지방세 포함)</span></td>'+(anyVat?'<td style="text-align:right">부가세<br><span style="font-weight:400">(건물분10%)</span></td>':'')+'<td style="text-align:right">순수익</td><td style="text-align:right">수익률</td></tr>';
             rows.forEach((r,i)=>{
                 const tot=r.tax+r.localTax;
+                const subLine=(r.sc.entity==='personal'&&r.sc.holding!=='exempt')?('보유 '+r.sc.sub+' · '+r.label):r.label;
                 h+='<tr class="'+(i===bestI?'best':'')+'">'
-                   +'<td><span class="stagstrat">'+r.sc.name+'</span>'+(i===bestI?'<span class="bestpill">최선</span>':'')+'<br><span class="stagsub">'+r.label+'</span></td>'
+                   +'<td><span class="stagstrat">'+r.sc.name+'</span>'+(i===bestI?'<span class="bestpill">최선</span>':'')+'<br><span class="stagsub">'+subLine+'</span></td>'
                    +'<td class="v">'+fmt(r.acq)+'<br><span class="stagsub">'+(r.ar*100).toFixed(1)+'%</span></td>'
                    +'<td class="v">'+fmt(tot)+'</td>'
                    +(anyVat?'<td class="v">'+(r.vat>0?fmt(r.vat):'–')+'</td>':'')
                    +'<td class="v">'+fmt(r.net)+'</td>'
-                   +'<td class="v">'+(r.roe*100).toFixed(1)+'%</td></tr>';
+                   +'<td class="v">'+(r.roe*100).toFixed(1)+'%<br><button class="calc-btn" onclick="toggleCalc('+i+')">📐 산식</button></td></tr>'
+                   +'<tr id="calc-'+i+'" class="calc-detail" style="display:none"><td colspan="'+(anyVat?6:5)+'">'+calcDetailHTML(r,sell,bid)+'</td></tr>';
             });
             h+='</table></div>';
             h+='<p style="font-size:11px;color:#aaa;margin:6px 2px 0">취득세 = 명의·물건유형·주택수·전용85㎡ 자동 적용(교육세·농특세 포함). 수익률 = 순수익 ÷ 각 명의 현금투입.</p>';
             const nonDeductPersonal = b0.interiorRev + b0.interest + b0.prepayFee + b0.clean + b0.mgmt + b0.evict;
-            if(nonDeductPersonal>0) h+='<p style="font-size:11px;color:#c2710c;margin:2px 2px 0">※ 대출이자·중도상환수수료·관리비·입주청소·명도비·수선도배 합계 <b>'+fmt(nonDeductPersonal)+'원</b>은 개인 양도세 필요경비 불인정 → 과세표준에 가산(매매사업자·법인은 비용 인정).</p>';
+            if(nonDeductPersonal>0) h+='<p style="font-size:11px;color:#c2710c;margin:2px 2px 0">※ 대출이자·중도상환수수료·관리비·입주청소·명도비·수선도배 합계 <b>'+fmt(nonDeductPersonal)+'원</b>은 개인 양도세 필요경비 불인정 → 과세표준에 가산.</p>';
+            if(b0.interiorRev>0) h+='<p style="font-size:11px;color:#c2710c;margin:2px 2px 0">※ 수선·도배(수익적 지출) <b>'+fmt(b0.interiorRev)+'원</b>은 개인·매매사업자·법인 <b>모두</b> 불인정(자본적 지출 인테리어는 인정).</p>';
+            if(b0.evict>0) h+='<p style="font-size:11px;color:#c2710c;margin:2px 2px 0">※ 명도비 <b>'+fmt(b0.evict)+'원</b>(미납·체납관리비·강제집행 이사/보관비 포함)은 개인·<b>매매사업자 불인정</b>, <b>법인만 인정</b>.</p>';
             if(state.prop==='house' && heavyExempt) h+='<p style="font-size:11px;color:#0f8a52;margin:2px 2px 0">※ 공시가격 '+(state.metro==='local'?'비수도권 2억':'1억')+' 이하 → 법인·다주택 취득세 <b>중과배제</b>, 기본세율 적용.</p>';
             if(anyVat) h+='<p style="font-size:11px;color:#aaa;margin:2px 2px 0">부가세 = 매도가 × 건물분 '+(buildingRatio*100).toFixed(0)+'% × 10% (매매사업자·법인, '+(state.prop==='house'?'주택 85㎡초과':'비주택')+' 과세 / 매입세액공제 미반영).</p>';
 
@@ -882,8 +906,9 @@
                     return;
                 }
                 const rate = appr ? (x.bid/appr*100).toFixed(1)+'%' : '–';
+                const subLine=(x.sc.entity==='personal'&&x.sc.holding!=='exempt')?('보유 '+x.sc.sub+' · '+x.r.label):x.r.label;
                 h+='<tr class="'+(i===bestI?'best':'')+'">'
-                   +'<td><span class="stagstrat">'+x.sc.name+'</span>'+(i===bestI?'<span class="bestpill">여유</span>':'')+'<br><span class="stagsub">'+x.r.label+'</span></td>'
+                   +'<td><span class="stagstrat">'+x.sc.name+'</span>'+(i===bestI?'<span class="bestpill">여유</span>':'')+'<br><span class="stagsub">'+subLine+'</span></td>'
                    +'<td class="v"><b>'+fmt(x.bid)+'</b></td>'
                    +'<td class="v">'+rate+'</td>'
                    +'<td class="v">'+fmt(x.r.acq)+'<br><span class="stagsub">'+(x.r.ar*100).toFixed(1)+'%</span></td></tr>';
@@ -934,6 +959,59 @@
             const ratio = parseNum($('l_ratio').value), rate = parseNum($('l_rate').value), months = parseNum($('l_months').value);
             const area = state.area84==='gt'?'85㎡초과':'84㎡이하';
             return `<div class="settings-summary">⚙️ <b>적용된 공통 설정</b> · 대출 ${ratio}% · 금리 ${rate}% · ${months}개월 · ${prop} · ${houses} · ${adj} · ${area} &nbsp;<a href="#common" style="color:#007AFF;text-decoration:none;font-weight:600;">설정 변경 ↓</a></div>`;
+        }
+
+        // 명의별 "계산 산식" 상세 (검토용)
+        function calcDetailHTML(r, sell, bid){
+            const b=r.base, w=fmt;
+            const ln=(k,v)=>`<span class="ln">${k} — <b>${v}</b></span>`;
+            const sub=t=>`<span class="ln" style="opacity:.65;font-size:11px;padding-left:14px">${t}</span>`;
+            let s='';
+            s+=ln('① 공통비용', w(b.otherCost)+'원');
+            s+=sub(`중개 ${w(b.broker)} + 법무 ${w(b.legal)} + 인테리어(자본) ${w(b.interiorCap)} + 수선·도배 ${w(b.interiorRev)} + 청소 ${w(b.clean)} + 관리 ${w(b.mgmt)} + 대출이자 ${w(b.interest)} + 중도상환 ${w(b.prepayFee)} + 명도 ${w(b.evict)}`);
+            s+=ln('② 취득세', `낙찰가 × ${(r.ar*100).toFixed(1)}% = ${w(r.acq)}원`);
+            s+=ln('③ 시세차익', `매도 ${w(sell)} − 낙찰 ${w(bid)} − (공통비용+취득세 ${w(b.otherCost+r.acq)}) = ${w(r.gross)}원`);
+            if(r.sc.holding==='exempt'){
+                s+=ln('④ 세금', '1세대1주택 2년 비과세 = 0원');
+            } else {
+                if(r.sc.entity==='business' && r.sc.bizMulti){
+                    s+=sub('비교과세 = MAX(종합소득세, 단기 양도세상당 70%) 중 큰 값. 수선·도배·명도비 불인정.');
+                } else if(r.nonDeduct>0 || r.deduction>0){
+                    const items = r.sc.entity==='personal' ? '수선·도배 + 대출이자 + 중도상환 + 청소 + 관리 + 명도'
+                                : r.sc.entity==='business' ? '수선·도배 + 명도비(미납관리비·강제집행 포함)'
+                                : '수선·도배';  // 법인
+                    s+=ln('④ 과세표준', `시세차익 ${w(r.gross)} + 필요경비불인정 ${w(r.nonDeduct)}${r.deduction>0?' − 기본공제 '+w(r.deduction):''} = ${w(r.taxBase)}원`);
+                    s+=sub('불인정(가산) = '+items);
+                }
+                s+=ln('⑤ 세금 ('+r.label+')', `${w(r.tax)}원  (+지방세 ${w(r.localTax)}원)`);
+            }
+            if(r.vat>0) s+=ln('부가세', `${w(r.vat)}원 (매도가 × 건물분 × 10%)`);
+            s+=ln('⑥ 순수익', `시세차익 − 세금${r.vat>0?'·부가세':''} = ${w(r.net)}원`);
+            s+=ln('현금투입', `자기자본 ${w(b.equity)} + (공통비용+취득세) = ${w(r.cashIn)}원`);
+            s+=ln('▶ 수익률', `순수익 ÷ 현금투입 = ${(r.roe*100).toFixed(1)}%`);
+            return s;
+        }
+        function toggleCalc(i){
+            const el=document.getElementById('calc-'+i); if(!el) return;
+            el.style.display = (el.style.display==='none'||!el.style.display) ? 'table-row' : 'none';
+        }
+
+        // 결과 이미지 저장 (html2canvas, 로컬 번들 지연로드)
+        function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=()=>res(); s.onerror=()=>rej(new Error('스크립트 로드 실패')); document.head.appendChild(s); }); }
+        async function saveImage(){
+            const el=$('result'); if(!el || !el.classList.contains('show')) return;
+            const btn=document.querySelector('#imgBtnBar .btn-img'); const orig = btn?btn.textContent:'';
+            try{
+                if(btn) btn.textContent='이미지 생성 중…';
+                if(!window.html2canvas) await loadScript('assets/html2canvas.min.js');
+                const dark=document.documentElement.getAttribute('data-theme')==='dark';
+                const canvas=await html2canvas(el,{ scale:2, useCORS:true, backgroundColor: dark?'#15171c':'#ffffff',
+                    onclone: doc=>{ const bar=doc.getElementById('imgBtnBar'); if(bar) bar.style.display='none';
+                        doc.querySelectorAll('.calc-detail').forEach(d=>{ d.style.display='none'; }); } });
+                const memo=($('i_case').value||'경매수익률분석').replace(/[\\\/:*?"<>|\n]/g,'').trim().slice(0,40) || '경매수익률분석';
+                const a=document.createElement('a'); a.download=memo+'.png'; a.href=canvas.toDataURL('image/png'); a.click();
+            }catch(e){ alert('이미지 저장 실패: '+e.message); }
+            finally{ if(btn) btn.textContent=orig; }
         }
 
         function resetForm(){
