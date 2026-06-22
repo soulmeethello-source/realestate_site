@@ -138,6 +138,8 @@
 
         /* breakdown table */
         .bd { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .bd td, .bd th { word-break: keep-all; }   /* 한글 단어 단위로 줄바꿈 (글자 깨짐 방지) */
+        .bd.cmp { min-width: 600px; }              /* 좁은 화면에선 가로 스크롤 */
         .bd tr { border-bottom: 1px solid #f0f2f5; }
         .bd td { padding: 9px 4px; }
         .bd td.k { color: #666; }
