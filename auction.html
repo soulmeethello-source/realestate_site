@@ -591,8 +591,7 @@
         const SCENARIOS = [
             {key:'p1',  name:'개인 양도세',   sub:'1년 미만', entity:'personal', holding:'lt1'},
             {key:'p2',  name:'개인 양도세',   sub:'1~2년',    entity:'personal', holding:'lt2'},
-            {key:'biz1',name:'매매사업자(1주택자)', sub:'종합소득세',          entity:'business', holding:'lt1', bizMulti:false},
-            {key:'bizN',name:'매매사업자(다주택자)', sub:'비교과세·매도시점',   entity:'business', holding:'lt1', bizMulti:true},
+            {key:'biz', name:'매매사업자',    sub:'비교과세(단기)', entity:'business', holding:'lt1'},
             {key:'corp',name:'법인',          sub:'법인세',         entity:'corp',     holding:'lt1'},
             {key:'ex',  name:'1주택 비과세',  sub:'2년 보유',       entity:'personal', holding:'exempt', houseOnly:true},
         ];
@@ -750,37 +749,42 @@
             const acq = bid*ar;
             const costTotal = base.otherCost + acq;
             const gross = sell - bid - costTotal;                  // 실제 세전 차익(전 비용 반영)
-            // 양도소득세 기준 필요경비 불인정 처리
-            // - 수선·도배(수익적 지출)는 개인 양도세·매매사업자 모두 불인정 → 과세표준에 가산
-            // - 개인 양도세는 추가로 대출이자·중도상환·관리·청소·명도도 불인정 + 기본공제 250만
-            // - 인정 필요경비: 취득세·법무비·중개비·자본적지출(인테리어)
-            const personalTransfer = (sc.entity==='personal' && sc.holding!=='exempt');
-            // 필요경비 불인정(과세표준 가산) — 명의별:
-            //  개인 양도세 : 수선도배+대출이자+중도상환+청소+관리+명도 (전부) + 기본공제 250만
-            //  매매사업자  : 수선도배 + 명도비(미납·체납관리비·강제집행 이사/보관비) 불인정
-            //  법인        : 수선도배만 불인정 (명도비는 인정)
-            const nonDeduct = personalTransfer
-                ? (base.interiorRev + base.interest + base.prepayFee + base.clean + base.mgmt + base.evict)
-                : (sc.holding==='exempt' ? 0
-                   : sc.entity==='business' ? (base.interiorRev + base.evict)
-                   : base.interiorRev);
-            const deduction = personalTransfer ? 2500000 : 0;
-            const taxBase = Math.max(0, gross + nonDeduct - deduction);
+            // ===== 세금 (양도소득세 기준) =====
+            // 경비 분류:
+            //   취득원가성(양도세 인정): 법무·중개·자본적지출(인테리어) + 취득세
+            //   기간비용(양도세 불인정): 대출이자·중도상환·청소·관리·수선도배
+            //   명도비: 개인·매매사업자 양도세 불인정 / 법인 인정(본세·추가세율)
+            const periodCost = base.interest + base.prepayFee + base.clean + base.mgmt + base.interiorRev;
+            const transferAddback = periodCost + base.evict;   // 양도세 방식: 기간비용+명도 전부 불인정
+            const DED = 2500000;
+            const shortRate = (prop==='house') ? (sc.holding==='lt1'?0.70:0.60) : (sc.holding==='lt1'?0.50:0.40);
 
-            let tax, label;
-            if(sc.entity==='business' && sc.bizMulti){
-                // 매매사업자(다주택자) 비교과세 = MAX(종합소득세, 단기 양도세 상당액)
-                // 양도세 상당액은 양도세 필요경비 룰(불인정 항목 가산)로 과세표준 산정
-                const bizBase = Math.max(0, gross + base.interiorRev + base.evict);  // 수선·도배·명도비 불인정
+            let tax, label, taxBase=Math.max(0,gross), nonDeduct=0, deduction=0, surBase=0, sur=0, baseTax=0;
+            if(sc.holding==='exempt'){
+                tax=0; taxBase=0; label='1세대1주택 2년 비과세';
+            } else if(sc.entity==='personal'){
+                // 개인 양도세: 기간비용·명도 전부 불인정 + 기본공제 250만
+                nonDeduct = transferAddback; deduction = DED;
+                taxBase = Math.max(0, gross + nonDeduct - deduction);
+                tax = taxBase*shortRate; label = `양도세 단기 ${shortRate*100}%`;
+            } else if(sc.entity==='business'){
+                // 매매사업자 = 비교과세 MAX(종합소득세[사업경비 전액 공제], 양도세 방식[기간비용·명도 불인정])
+                const bizBase = Math.max(0, gross);
                 const bizTax = prog(other+bizBase, INCOME) - prog(other, INCOME);
-                const transferBase = Math.max(0, gross + (base.interiorRev + base.interest + base.prepayFee + base.clean + base.mgmt + base.evict) - 2500000);
-                const shortRate = (prop==='house') ? 0.70 : 0.50;   // 1년 미만 단기세율
-                const transferTax = transferBase * shortRate;
-                if(transferTax >= bizTax){ tax = transferTax; label = `비교과세 → 양도세상당 ${shortRate*100}%`; }
-                else { const eff = bizBase>0 ? bizTax/bizBase : 0; tax = bizTax; label = `비교과세 → 종소세 ${(eff*100).toFixed(1)}%`; }
-            } else {
-                const r = calcTax(taxBase, { entity:sc.entity, prop, holding:sc.holding, other, flatRate:0 });
-                tax = r.tax; label = r.label;
+                const transBase = Math.max(0, gross + transferAddback - DED);
+                const transTax = transBase * shortRate;
+                if(transTax >= bizTax){ tax=transTax; taxBase=transBase; nonDeduct=transferAddback; deduction=DED; label=`비교과세→양도세 ${shortRate*100}%`; }
+                else { tax=bizTax; taxBase=bizBase; const eff=bizBase>0?bizTax/bizBase:0; label=`비교과세→종소세 ${(eff*100).toFixed(1)}%`; }
+            } else { // corp
+                // 법인세 본세: 운영비 전액 손금(전액 공제)
+                taxBase = Math.max(0, gross);
+                baseTax = prog(other+taxBase, CORP) - prog(other, CORP);
+                // 주택 추가세율 20%: (매도가−장부가액) 기준 → 기간비용 직접공제 불가, 명도는 인정
+                surBase = (prop==='house') ? Math.max(0, gross + periodCost) : 0;
+                sur = surBase * 0.20;
+                tax = baseTax + sur;
+                const eff = taxBase>0 ? baseTax/taxBase : 0;
+                label = `법인세 ${(eff*100).toFixed(1)}%` + (sur>0?'(+주택20%)':'');
             }
             const localTax = tax*0.10;
             // 부가세: 매매사업자·법인 + (비주택 또는 주택 85㎡초과) → 건물분 × 10% (매출부가세, 매입공제 미반영)
@@ -791,7 +795,7 @@
             const cashIn = base.equity + costTotal;
             const roe = cashIn>0 ? net/cashIn : 0;
             const bidRate = appr>0 ? bid/appr : 0;
-            return { base, ar, acq, costTotal, gross, nonDeduct, deduction, taxBase, tax, localTax, label, vat, net, cashIn, roe, bidRate };
+            return { base, ar, acq, costTotal, gross, nonDeduct, deduction, taxBase, tax, localTax, label, vat, net, cashIn, roe, bidRate, periodCost, transferAddback, surBase, sur, baseTax };
         }
 
         // ===== analyze =====
@@ -839,9 +843,8 @@
             h+='</table></div>';
             h+='<p style="font-size:11px;color:#aaa;margin:6px 2px 0">취득세 = 명의·물건유형·주택수·전용85㎡ 자동 적용(교육세·농특세 포함). 수익률 = 순수익 ÷ 각 명의 현금투입.</p>';
             const nonDeductPersonal = b0.interiorRev + b0.interest + b0.prepayFee + b0.clean + b0.mgmt + b0.evict;
-            if(nonDeductPersonal>0) h+='<p style="font-size:11px;color:#c2710c;margin:2px 2px 0">※ 대출이자·중도상환수수료·관리비·입주청소·명도비·수선도배 합계 <b>'+fmt(nonDeductPersonal)+'원</b>은 개인 양도세 필요경비 불인정 → 과세표준에 가산.</p>';
-            if(b0.interiorRev>0) h+='<p style="font-size:11px;color:#c2710c;margin:2px 2px 0">※ 수선·도배(수익적 지출) <b>'+fmt(b0.interiorRev)+'원</b>은 개인·매매사업자·법인 <b>모두</b> 불인정(자본적 지출 인테리어는 인정).</p>';
-            if(b0.evict>0) h+='<p style="font-size:11px;color:#c2710c;margin:2px 2px 0">※ 명도비 <b>'+fmt(b0.evict)+'원</b>(미납·체납관리비·강제집행 이사/보관비 포함)은 개인·<b>매매사업자 불인정</b>, <b>법인만 인정</b>.</p>';
+            if(nonDeductPersonal>0) h+='<p style="font-size:11px;color:#c2710c;margin:6px 2px 0">※ <b>대출이자·중도상환·청소·관리·수선도배·명도</b> 합계 <b>'+fmt(nonDeductPersonal)+'원</b>: <b>개인 양도세</b>는 전부 불인정 / <b>매매사업자</b>는 비교과세가 양도세 방식으로 적용되면 무용지물(종소세 방식이면 인정).</p>';
+            h+='<p style="font-size:11px;color:#aaa;margin:2px 2px 0">※ <b>법인</b>: 위 비용은 법인세 본세에선 전액 손금이나, <b>주택 추가세율 20%</b>는 장부가액 기준이라 기간비용(이자·청소·관리·중도상환·수선도배) 직접공제 안 됨(명도비는 인정). 인정 필요경비: 취득세·법무·중개·자본적지출(인테리어).</p>';
             if(state.prop==='house' && heavyExempt) h+='<p style="font-size:11px;color:#0f8a52;margin:2px 2px 0">※ 공시가격 '+(state.metro==='local'?'비수도권 2억':'1억')+' 이하 → 법인·다주택 취득세 <b>중과배제</b>, 기본세율 적용.</p>';
             if(anyVat) h+='<p style="font-size:11px;color:#aaa;margin:2px 2px 0">부가세 = 매도가 × 건물분 '+(buildingRatio*100).toFixed(0)+'% × 10% (매매사업자·법인, '+(state.prop==='house'?'주택 85㎡초과':'비주택')+' 과세 / 매입세액공제 미반영).</p>';
 
@@ -975,17 +978,19 @@
             s+=ln('③ 시세차익', `매도 ${w(sell)} − 낙찰 ${w(bid)} − (공통비용+취득세 ${w(b.otherCost+r.acq)}) = ${w(r.gross)}원`);
             if(r.sc.holding==='exempt'){
                 s+=ln('④ 세금', '1세대1주택 2년 비과세 = 0원');
-            } else {
-                if(r.sc.entity==='business' && r.sc.bizMulti){
-                    s+=sub('비교과세 = MAX(종합소득세, 단기 양도세상당 70%) 중 큰 값. 수선·도배·명도비 불인정.');
-                } else if(r.nonDeduct>0 || r.deduction>0){
-                    const items = r.sc.entity==='personal' ? '수선·도배 + 대출이자 + 중도상환 + 청소 + 관리 + 명도'
-                                : r.sc.entity==='business' ? '수선·도배 + 명도비(미납관리비·강제집행 포함)'
-                                : '수선·도배';  // 법인
-                    s+=ln('④ 과세표준', `시세차익 ${w(r.gross)} + 필요경비불인정 ${w(r.nonDeduct)}${r.deduction>0?' − 기본공제 '+w(r.deduction):''} = ${w(r.taxBase)}원`);
-                    s+=sub('불인정(가산) = '+items);
-                }
+            } else if(r.sc.entity==='personal'){
+                s+=ln('④ 과세표준', `시세차익 ${w(r.gross)} + 양도세 불인정 ${w(r.nonDeduct)} − 기본공제 ${w(r.deduction)} = ${w(r.taxBase)}원`);
+                s+=sub('불인정(가산) = 대출이자 + 중도상환 + 청소 + 관리 + 수선·도배 + 명도');
+                s+=ln('⑤ 양도세 ('+r.label+')', `${w(r.tax)}원  (+지방세 ${w(r.localTax)}원)`);
+            } else if(r.sc.entity==='business'){
+                s+=sub('비교과세 = MAX( 종합소득세[사업경비 전액 공제] , 양도세 방식[기간비용·명도 불인정] )');
+                if(r.deduction>0) s+=ln('④ 과세표준', `[양도세 방식] 시세차익 ${w(r.gross)} + 불인정 ${w(r.nonDeduct)} − 공제 ${w(r.deduction)} = ${w(r.taxBase)}원`);
+                else s+=ln('④ 과세표준', `[종소세 방식] 시세차익 ${w(r.gross)} = ${w(r.taxBase)}원 (사업경비 전액 공제)`);
                 s+=ln('⑤ 세금 ('+r.label+')', `${w(r.tax)}원  (+지방세 ${w(r.localTax)}원)`);
+            } else { // corp
+                s+=ln('④ 법인세 본세', `과세표준 ${w(r.taxBase)} (운영비 전액 손금) → ${w(r.baseTax)}원`);
+                if(r.sur>0){ s+=ln('④ 주택 추가세율', `(매도가 − 장부가액) ${w(r.surBase)} × 20% = ${w(r.sur)}원`); s+=sub('추가세율 기준=장부가액 → 대출이자·중도상환·청소·관리·수선도배는 직접공제 X / 명도비는 인정'); }
+                s+=ln('⑤ 세금 합계 ('+r.label+')', `${w(r.tax)}원  (+지방세 ${w(r.localTax)}원)`);
             }
             if(r.vat>0) s+=ln('부가세', `${w(r.vat)}원 (매도가 × 건물분 × 10%)`);
             s+=ln('⑥ 순수익', `시세차익 − 세금${r.vat>0?'·부가세':''} = ${w(r.net)}원`);
@@ -1007,11 +1012,25 @@
                 if(btn) btn.textContent='이미지 생성 중…';
                 if(!window.html2canvas) await loadScript('assets/html2canvas.min.js');
                 const dark=document.documentElement.getAttribute('data-theme')==='dark';
-                const canvas=await html2canvas(el,{ scale:2, useCORS:true, backgroundColor: dark?'#15171c':'#ffffff',
-                    onclone: doc=>{ const bar=doc.getElementById('imgBtnBar'); if(bar) bar.style.display='none';
+                const W=760;  // 넓은 너비로 캡처 → 표 잘림 방지
+                const canvas=await html2canvas(el,{ scale:2, useCORS:true, backgroundColor: dark?'#15171c':'#ffffff', width:W, windowWidth:W,
+                    onclone: doc=>{
+                        const r=doc.getElementById('result'); if(r){ r.style.width=W+'px'; r.style.maxWidth='none'; }
+                        doc.querySelectorAll('.scroll-x').forEach(x=>{ x.style.overflow='visible'; });  // 가로스크롤 펼치기
+                        const bar=doc.getElementById('imgBtnBar'); if(bar) bar.style.display='none';
                         doc.querySelectorAll('.calc-detail').forEach(d=>{ d.style.display='none'; }); } });
                 const memo=($('i_case').value||'경매수익률분석').replace(/[\\\/:*?"<>|\n]/g,'').trim().slice(0,40) || '경매수익률분석';
-                const a=document.createElement('a'); a.download=memo+'.png'; a.href=canvas.toDataURL('image/png'); a.click();
+                const fname=memo+'.png';
+                const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
+                const file=new File([blob], fname, {type:'image/png'});
+                // 모바일: 공유 시트(→ 사진에 저장) / 데스크톱·미지원: 다운로드
+                if(navigator.canShare && navigator.canShare({files:[file]})){
+                    try{ await navigator.share({files:[file], title:'경매 수익률 분석'}); if(btn)btn.textContent=orig; return; }
+                    catch(e){ if(e && e.name==='AbortError'){ if(btn)btn.textContent=orig; return; } /* 그 외엔 다운로드로 폴백 */ }
+                }
+                const url=URL.createObjectURL(blob);
+                const a=document.createElement('a'); a.download=fname; a.href=url; a.click();
+                setTimeout(()=>URL.revokeObjectURL(url),1000);
             }catch(e){ alert('이미지 저장 실패: '+e.message); }
             finally{ if(btn) btn.textContent=orig; }
         }
