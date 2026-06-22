@@ -411,7 +411,7 @@
                 </div>
             </div>
 
-            <div class="subhead">부대비용 (항목별)</div>
+            <div class="subhead">필요경비 <span class="opt" style="font-weight:400;color:#aaa;">(양도세 공제 인정)</span></div>
             <div class="grid">
                 <div class="field">
                     <label>법무비 <span class="opt">(등기·셀프 등)</span></label>
@@ -428,7 +428,21 @@
                     <div class="readout" id="c_interior_cap_ro"></div>
                 </div>
                 <div class="field">
-                    <label>수선·도배 <span class="opt">(수익적·개인양도 불인정)</span></label>
+                    <label>명도비 <span class="opt">(체납관리비 대납 등·취득부대비용)</span></label>
+                    <div class="input-wrap"><input type="text" id="c_evict" inputmode="numeric" value="1,000,000"><span class="input-unit">원</span></div>
+                    <div class="readout" id="c_evict_ro"></div>
+                </div>
+                <div class="field">
+                    <label>취득조건 이자인수 <span class="opt">(취득가액 포함)</span></label>
+                    <div class="input-wrap"><input type="text" id="c_acqint" inputmode="numeric" value="0"><span class="input-unit">원</span></div>
+                    <div class="readout" id="c_acqint_ro"></div>
+                </div>
+            </div>
+
+            <div class="subhead">부대비용 <span class="opt" style="font-weight:400;color:#aaa;">(양도세 불인정)</span></div>
+            <div class="grid">
+                <div class="field">
+                    <label>수선·도배 <span class="opt">(수익적·불인정)</span></label>
                     <div class="input-wrap"><input type="text" id="c_interior_rev" inputmode="numeric" value="0"><span class="input-unit">원</span></div>
                     <div class="readout" id="c_interior_rev_ro"></div>
                 </div>
@@ -439,10 +453,6 @@
                 <div class="field">
                     <label>관리비(소유권 이후)</label>
                     <div class="input-wrap"><input type="text" id="c_mgmt" inputmode="numeric" value="500,000"><span class="input-unit">원</span></div>
-                </div>
-                <div class="field">
-                    <label>명도비 <span class="opt">(체납관리비 등)</span></label>
-                    <div class="input-wrap"><input type="text" id="c_evict" inputmode="numeric" value="1,000,000"><span class="input-unit">원</span></div>
                 </div>
             </div>
 
@@ -591,7 +601,8 @@
         const SCENARIOS = [
             {key:'p1',  name:'개인 양도세',   sub:'1년 미만', entity:'personal', holding:'lt1'},
             {key:'p2',  name:'개인 양도세',   sub:'1~2년',    entity:'personal', holding:'lt2'},
-            {key:'biz', name:'매매사업자',    sub:'비교과세(단기)', entity:'business', holding:'lt1'},
+            {key:'biz1',name:'매매사업자(1주택자)', sub:'종합소득세',        entity:'business', holding:'lt1', bizMulti:false},
+            {key:'bizN',name:'매매사업자(다주택자)', sub:'조정지역 비교과세', entity:'business', holding:'lt1', bizMulti:true},
             {key:'corp',name:'법인',          sub:'법인세',         entity:'corp',     holding:'lt1'},
             {key:'ex',  name:'1주택 비과세',  sub:'2년 보유',       entity:'personal', holding:'exempt', houseOnly:true},
         ];
@@ -615,7 +626,7 @@
                 if(ro) ro.textContent = raw? toKorean(parseInt(raw,10)) : '';
             });
         }
-        ['i_appr','i_bid','i_sell','c_legal','c_interior_cap','c_interior_rev','c_clean','c_mgmt','c_evict','t_other','rc_sell','rc_target','rc_appr','sim_appr','sim_sell'].forEach(attachMoney);
+        ['i_appr','i_bid','i_sell','c_legal','c_interior_cap','c_interior_rev','c_clean','c_mgmt','c_evict','c_acqint','t_other','rc_sell','rc_target','rc_appr','sim_appr','sim_sell'].forEach(attachMoney);
 
         // ===== tabs =====
         document.querySelectorAll('.tab').forEach(t=>{
@@ -731,14 +742,15 @@
             const clean = parseNum($('c_clean').value);
             const mgmt = parseNum($('c_mgmt').value);
             const evict = parseNum($('c_evict').value);
+            const acqint = parseNum($('c_acqint').value);   // 취득시 인수 이자 (법인만 취득비용 공제)
 
             const loan = bid*ratio;
             const broker = sell*brokerRate;
             const interest = loan*rate*(months/12);
             const prepayFee = loan*prepay;
-            const otherCost = broker+legal+interiorCap+interiorRev+clean+mgmt+interest+prepayFee+evict;
+            const otherCost = broker+legal+interiorCap+interiorRev+clean+mgmt+interest+prepayFee+evict+acqint;
             const equity = bid - loan;
-            return { ratio,rate,months,prepay,brokerRate,legal,interiorCap,interiorRev,clean,mgmt,evict,
+            return { ratio,rate,months,prepay,brokerRate,legal,interiorCap,interiorRev,clean,mgmt,evict,acqint,
                 loan,broker,interest,prepayFee,otherCost,equity };
         }
 
@@ -751,11 +763,10 @@
             const gross = sell - bid - costTotal;                  // 실제 세전 차익(전 비용 반영)
             // ===== 세금 (양도소득세 기준) =====
             // 경비 분류:
-            //   취득원가성(양도세 인정): 법무·중개·자본적지출(인테리어) + 취득세
-            //   기간비용(양도세 불인정): 대출이자·중도상환·청소·관리·수선도배
-            //   명도비: 개인·매매사업자 양도세 불인정 / 법인 인정(본세·추가세율)
-            const periodCost = base.interest + base.prepayFee + base.clean + base.mgmt + base.interiorRev;
-            const transferAddback = periodCost + base.evict;   // 양도세 방식: 기간비용+명도 전부 불인정
+            //   취득원가성(전 명의 공제): 취득세·법무·중개·인테리어(자본) + 명도비(체납관리비 대납)·취득조건 이자인수
+            //   부대비용(전 명의 불인정): 대출이자·중도상환·청소·관리·수선도배
+            //   → 명도비·인수이자는 otherCost에 이미 차감(공제), 가산하지 않음
+            const transferAddback = base.interest + base.prepayFee + base.clean + base.mgmt + base.interiorRev; // 전 명의 불인정(가산)
             const DED = 2500000;
             const shortRate = (prop==='house') ? (sc.holding==='lt1'?0.70:0.60) : (sc.holding==='lt1'?0.50:0.40);
 
@@ -768,19 +779,27 @@
                 taxBase = Math.max(0, gross + nonDeduct - deduction);
                 tax = taxBase*shortRate; label = `양도세 단기 ${shortRate*100}%`;
             } else if(sc.entity==='business'){
-                // 매매사업자 = 비교과세 MAX(종합소득세[사업경비 전액 공제], 양도세 방식[기간비용·명도 불인정])
-                const bizBase = Math.max(0, gross);
+                // 매매사업자: 세율은 종합소득세(누진)이나, 이 도구는 양도세 개념 → 필요경비만 공제, 부대비용 불인정
+                nonDeduct = transferAddback;                          // 부대비용(이자·중도상환·청소·관리·수선도배·명도) 불인정
+                const bizBase = Math.max(0, gross + transferAddback); // 종소세율 적용 과세표준(부대비용 가산)
                 const bizTax = prog(other+bizBase, INCOME) - prog(other, INCOME);
-                const transBase = Math.max(0, gross + transferAddback - DED);
-                const transTax = transBase * shortRate;
-                if(transTax >= bizTax){ tax=transTax; taxBase=transBase; nonDeduct=transferAddback; deduction=DED; label=`비교과세→양도세 ${shortRate*100}%`; }
-                else { tax=bizTax; taxBase=bizBase; const eff=bizBase>0?bizTax/bizBase:0; label=`비교과세→종소세 ${(eff*100).toFixed(1)}%`; }
+                if(sc.bizMulti && adj){
+                    // 다주택 + 조정대상지역 → 비교과세 MAX(종합소득세, 양도세 단기율)
+                    const transBase = Math.max(0, gross + transferAddback - DED);
+                    const transTax = transBase * shortRate;
+                    if(transTax >= bizTax){ tax=transTax; taxBase=transBase; deduction=DED; label=`비교과세→양도세 ${shortRate*100}%`; }
+                    else { tax=bizTax; taxBase=bizBase; const eff=bizBase>0?bizTax/bizBase:0; label=`비교과세→종소세 ${(eff*100).toFixed(1)}%`; }
+                } else {
+                    // 1주택 또는 다주택·비조정 → 종합소득세율 (부대비용 불인정)
+                    tax=bizTax; taxBase=bizBase;
+                    const eff=bizBase>0?bizTax/bizBase:0; label=`종합소득세 ${(eff*100).toFixed(1)}%`;
+                }
             } else { // corp
-                // 법인세 본세: 운영비 전액 손금(전액 공제)
-                taxBase = Math.max(0, gross);
-                baseTax = prog(other+taxBase, CORP) - prog(other, CORP);
-                // 주택 추가세율 20%: (매도가−장부가액) 기준 → 기간비용 직접공제 불가, 명도는 인정
-                surBase = (prop==='house') ? Math.max(0, gross + periodCost) : 0;
+                // 법인: 부대비용(이자·중도상환·청소·관리·수선도배) 불인정 / 취득원가성은 공제
+                nonDeduct = transferAddback;
+                taxBase = Math.max(0, gross + transferAddback);
+                baseTax = prog(other+taxBase, CORP) - prog(other, CORP);   // 법인세 본세 9~24%
+                surBase = (prop==='house') ? taxBase : 0;                  // 주택 추가세율 20%
                 sur = surBase * 0.20;
                 tax = baseTax + sur;
                 const eff = taxBase>0 ? baseTax/taxBase : 0;
@@ -842,9 +861,9 @@
             });
             h+='</table></div>';
             h+='<p style="font-size:11px;color:#aaa;margin:6px 2px 0">취득세 = 명의·물건유형·주택수·전용85㎡ 자동 적용(교육세·농특세 포함). 수익률 = 순수익 ÷ 각 명의 현금투입.</p>';
-            const nonDeductPersonal = b0.interiorRev + b0.interest + b0.prepayFee + b0.clean + b0.mgmt + b0.evict;
-            if(nonDeductPersonal>0) h+='<p style="font-size:11px;color:#c2710c;margin:6px 2px 0">※ <b>대출이자·중도상환·청소·관리·수선도배·명도</b> 합계 <b>'+fmt(nonDeductPersonal)+'원</b>: <b>개인 양도세</b>는 전부 불인정 / <b>매매사업자</b>는 비교과세가 양도세 방식으로 적용되면 무용지물(종소세 방식이면 인정).</p>';
-            h+='<p style="font-size:11px;color:#aaa;margin:2px 2px 0">※ <b>법인</b>: 위 비용은 법인세 본세에선 전액 손금이나, <b>주택 추가세율 20%</b>는 장부가액 기준이라 기간비용(이자·청소·관리·중도상환·수선도배) 직접공제 안 됨(명도비는 인정). 인정 필요경비: 취득세·법무·중개·자본적지출(인테리어).</p>';
+            const nonDeductPersonal = b0.interiorRev + b0.interest + b0.prepayFee + b0.clean + b0.mgmt;
+            if(nonDeductPersonal>0) h+='<p style="font-size:11px;color:#c2710c;margin:6px 2px 0">※ 부대비용 <b>대출이자·중도상환·청소·관리·수선도배</b> 합계 <b>'+fmt(nonDeductPersonal)+'원</b>은 <b>전 명의 불인정</b>(과세표준 가산). 매매사업자는 종소세율이나 공제는 양도세 개념, 다주택+조정은 비교과세로 단기율↑.</p>';
+            if(b0.evict+b0.acqint>0) h+='<p style="font-size:11px;color:#0f8a52;margin:2px 2px 0">※ 명도비(체납관리비 대납)·취득조건 이자인수 <b>'+fmt(b0.evict+b0.acqint)+'원</b>은 <b>취득부대비용으로 전 명의 공제</b>. 인정 필요경비: 취득세·법무·중개·인테리어(자본).</p>';
             if(state.prop==='house' && heavyExempt) h+='<p style="font-size:11px;color:#0f8a52;margin:2px 2px 0">※ 공시가격 '+(state.metro==='local'?'비수도권 2억':'1억')+' 이하 → 법인·다주택 취득세 <b>중과배제</b>, 기본세율 적용.</p>';
             if(anyVat) h+='<p style="font-size:11px;color:#aaa;margin:2px 2px 0">부가세 = 매도가 × 건물분 '+(buildingRatio*100).toFixed(0)+'% × 10% (매매사업자·법인, '+(state.prop==='house'?'주택 85㎡초과':'비주택')+' 과세 / 매입세액공제 미반영).</p>';
 
@@ -973,23 +992,25 @@
             const sub=t=>`<span class="ln" style="opacity:.65;font-size:11px;padding-left:14px">${t}</span>`;
             let s='';
             s+=ln('① 공통비용', w(b.otherCost)+'원');
-            s+=sub(`중개 ${w(b.broker)} + 법무 ${w(b.legal)} + 인테리어(자본) ${w(b.interiorCap)} + 수선·도배 ${w(b.interiorRev)} + 청소 ${w(b.clean)} + 관리 ${w(b.mgmt)} + 대출이자 ${w(b.interest)} + 중도상환 ${w(b.prepayFee)} + 명도 ${w(b.evict)}`);
+            s+=sub(`중개 ${w(b.broker)} + 법무 ${w(b.legal)} + 인테리어(자본) ${w(b.interiorCap)} + 수선·도배 ${w(b.interiorRev)} + 청소 ${w(b.clean)} + 관리 ${w(b.mgmt)} + 대출이자 ${w(b.interest)} + 중도상환 ${w(b.prepayFee)} + 명도 ${w(b.evict)} + 인수이자 ${w(b.acqint)}`);
             s+=ln('② 취득세', `낙찰가 × ${(r.ar*100).toFixed(1)}% = ${w(r.acq)}원`);
             s+=ln('③ 시세차익', `매도 ${w(sell)} − 낙찰 ${w(bid)} − (공통비용+취득세 ${w(b.otherCost+r.acq)}) = ${w(r.gross)}원`);
             if(r.sc.holding==='exempt'){
                 s+=ln('④ 세금', '1세대1주택 2년 비과세 = 0원');
             } else if(r.sc.entity==='personal'){
                 s+=ln('④ 과세표준', `시세차익 ${w(r.gross)} + 양도세 불인정 ${w(r.nonDeduct)} − 기본공제 ${w(r.deduction)} = ${w(r.taxBase)}원`);
-                s+=sub('불인정(가산) = 대출이자 + 중도상환 + 청소 + 관리 + 수선·도배 + 명도');
+                s+=sub('불인정(가산) = 대출이자 + 중도상환 + 청소 + 관리 + 수선·도배  (명도·인수이자는 취득원가라 공제)');
                 s+=ln('⑤ 양도세 ('+r.label+')', `${w(r.tax)}원  (+지방세 ${w(r.localTax)}원)`);
             } else if(r.sc.entity==='business'){
-                s+=sub('비교과세 = MAX( 종합소득세[사업경비 전액 공제] , 양도세 방식[기간비용·명도 불인정] )');
-                if(r.deduction>0) s+=ln('④ 과세표준', `[양도세 방식] 시세차익 ${w(r.gross)} + 불인정 ${w(r.nonDeduct)} − 공제 ${w(r.deduction)} = ${w(r.taxBase)}원`);
-                else s+=ln('④ 과세표준', `[종소세 방식] 시세차익 ${w(r.gross)} = ${w(r.taxBase)}원 (사업경비 전액 공제)`);
+                s+=sub('종합소득세율이나 공제는 양도세 개념 — 부대비용(이자·중도상환·청소·관리·수선도배) 불인정'+(r.sc.bizMulti?' / 다주택+조정 → 비교과세':''));
+                if(r.deduction>0) s+=ln('④ 과세표준', `[양도세 방식] 시세차익 ${w(r.gross)} + 부대비용 불인정 ${w(r.nonDeduct)} − 공제 ${w(r.deduction)} = ${w(r.taxBase)}원`);
+                else s+=ln('④ 과세표준', `[종합소득세] 시세차익 ${w(r.gross)} + 부대비용 불인정 ${w(r.nonDeduct)} = ${w(r.taxBase)}원`);
                 s+=ln('⑤ 세금 ('+r.label+')', `${w(r.tax)}원  (+지방세 ${w(r.localTax)}원)`);
             } else { // corp
-                s+=ln('④ 법인세 본세', `과세표준 ${w(r.taxBase)} (운영비 전액 손금) → ${w(r.baseTax)}원`);
-                if(r.sur>0){ s+=ln('④ 주택 추가세율', `(매도가 − 장부가액) ${w(r.surBase)} × 20% = ${w(r.sur)}원`); s+=sub('추가세율 기준=장부가액 → 대출이자·중도상환·청소·관리·수선도배는 직접공제 X / 명도비는 인정'); }
+                s+=sub('부대비용(이자·중도상환·청소·관리·수선도배) 불인정 (필요경비·명도·인수이자는 공제)');
+                s+=ln('④ 과세표준', `시세차익 ${w(r.gross)} + 부대비용 불인정 ${w(r.nonDeduct)} = ${w(r.taxBase)}원`);
+                s+=ln('⑤ 법인세 본세', `${w(r.baseTax)}원`);
+                if(r.sur>0) s+=ln('⑤ 주택 추가세율 20%', `${w(r.surBase)} × 20% = ${w(r.sur)}원`);
                 s+=ln('⑤ 세금 합계 ('+r.label+')', `${w(r.tax)}원  (+지방세 ${w(r.localTax)}원)`);
             }
             if(r.vat>0) s+=ln('부가세', `${w(r.vat)}원 (매도가 × 건물분 × 10%)`);
@@ -1042,7 +1063,7 @@
         }
 
         // ===== 입력값 저장/복원 + URL 공유 =====
-        const ALL_INPUTS = ['i_case','i_appr','i_bid','i_sell','rc_sell','rc_target','rc_appr','sim_appr','sim_sell','sim_from','sim_to','sim_step','l_ratio','l_rate','l_months','l_prepay','c_legal','c_brokerrate','c_interior_cap','c_interior_rev','c_clean','c_mgmt','c_evict','t_other','b_ratio','mk_addr','mk_area','mk_tol'];
+        const ALL_INPUTS = ['i_case','i_appr','i_bid','i_sell','rc_sell','rc_target','rc_appr','sim_appr','sim_sell','sim_from','sim_to','sim_step','l_ratio','l_rate','l_months','l_prepay','c_legal','c_brokerrate','c_interior_cap','c_interior_rev','c_clean','c_mgmt','c_evict','c_acqint','t_other','b_ratio','mk_addr','mk_area','mk_tol'];
         const SEG_KEYS = ['prop','houses','metro','pub','area84','adj'];
         const STORE_KEY = 'auction:v1';
 
