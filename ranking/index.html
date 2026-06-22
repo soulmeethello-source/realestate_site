@@ -57,8 +57,13 @@
 
         .note { margin-top: 16px; font-size: 12px; color: #888; background: #f7f9fc; border-radius: 10px; padding: 12px 14px; }
         .note b { color: #007AFF; }
-        .footer { text-align: center; padding: 26px 24px; color: #999; font-size: 12px; }
+        .footer { text-align: center; padding: 26px 24px; color: #999; font-size: 13px; border-top: 1px solid #e8eaed; }
         .footer a { color: #007AFF; text-decoration: none; }
+        .footer-contact { margin-top: 8px; font-size: 13px; }
+        .footer-contact a { color: #007AFF; text-decoration: none; }
+        .footer-contact a:hover { text-decoration: underline; }
+        [data-theme="dark"] .footer { color: #8b909b; border-top-color: #2a2e37; }
+        [data-theme="dark"] .footer-contact a { color: #6db3ff; }
 
         .theme-toggle { position: fixed; top: 12px; right: 14px; z-index: 200; width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.18); color: #fff; font-size: 18px; cursor: pointer; line-height: 1; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); transition: all 0.2s; }
         .theme-toggle:hover { background: rgba(255,255,255,0.32); }
@@ -154,16 +159,25 @@
     </div>
 
     <footer class="footer">
-        수도권 빌라 거래량 &copy; 2026 &middot; 최종 업데이트: 2026.6.23<br>
-        사이트 추가 및 기능 건의 &middot; <a href="mailto:chioyhappy@gmail.com?subject=%5B%EC%88%98%EB%8F%84%EA%B6%8C%20%EB%B9%8C%EB%9D%BC%20%EA%B1%B0%EB%9E%98%EB%9F%89%5D">chioyhappy@gmail.com</a><br>
-        누적 방문자 <span id="visitor-total">-</span> &middot; 오늘 <span id="visitor-today">-</span><br>
-        <span style="color:#aaa;font-size:11px;">데이터 출처: 국토교통부 연립다세대 매매 실거래가</span> &middot; <a href="/">부동산 사이트 모음</a> &middot; <a href="/auction/">경매 수익률 분석기</a>
+        수도권 빌라 거래량 &copy; 2026 &middot; 최종 업데이트: 2026.6.23
+        <div class="footer-contact">
+            사이트 추가 및 기능 건의 &middot; <a href="mailto:chioyhappy@gmail.com?subject=%5B%EC%88%98%EB%8F%84%EA%B6%8C%20%EB%B9%8C%EB%9D%BC%20%EA%B1%B0%EB%9E%98%EB%9F%89%5D">chioyhappy@gmail.com</a>
+        </div>
+        <div class="footer-contact">
+            오늘 방문자 수: <span id="visitor-today">-</span>
+        </div>
+        <div class="footer-contact">
+            총 방문자 수: <span id="visitor-total">-</span>
+        </div>
+        <div class="footer-contact" style="color:#aaa;font-size:11px;">
+            데이터 출처: 국토교통부 연립다세대 매매 실거래가 &middot; <a href="/">부동산 사이트 모음</a> &middot; <a href="/auction/">경매 수익률 분석기</a>
+        </div>
     </footer>
     <!-- GoatCounter 방문자 추적 + 사이트 전체 방문자 수 -->
     <script data-goatcounter="https://soulmeethello.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
     <script>
         (function(){
-            var base='https://soulmeethello.goatcounter.com/counter/TOTAL.json';
+            var base='https://soulmeethello.goatcounter.com/counter/%2F.json';
             var today=new Date().toISOString().slice(0,10);
             function set(id,url){ var r=new XMLHttpRequest(); r.addEventListener('load',function(){ try{ var el=document.getElementById(id); if(el) el.innerText=JSON.parse(this.responseText).count.toLocaleString(); }catch(e){} }); r.open('GET',url); r.send(); }
             setTimeout(function(){ set('visitor-total',base); set('visitor-today',base+'?start='+today); },800);
