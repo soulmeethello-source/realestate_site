@@ -428,8 +428,8 @@
                     <div class="readout" id="c_interior_cap_ro"></div>
                 </div>
                 <div class="field">
-                    <label>명도비 <span class="opt">(체납관리비 대납 등·취득부대비용)</span></label>
-                    <div class="input-wrap"><input type="text" id="c_evict" inputmode="numeric" value="1,000,000"><span class="input-unit">원</span></div>
+                    <label>체납관리비 <span class="opt">(인수 미납분·취득부대비용)</span></label>
+                    <div class="input-wrap"><input type="text" id="c_evict" inputmode="numeric" value="0"><span class="input-unit">원</span></div>
                     <div class="readout" id="c_evict_ro"></div>
                 </div>
                 <div class="field">
@@ -445,6 +445,11 @@
                     <label>수선·도배 <span class="opt">(수익적·불인정)</span></label>
                     <div class="input-wrap"><input type="text" id="c_interior_rev" inputmode="numeric" value="0"><span class="input-unit">원</span></div>
                     <div class="readout" id="c_interior_rev_ro"></div>
+                </div>
+                <div class="field">
+                    <label>명도비 <span class="opt">(강제집행·이사·보관 등)</span></label>
+                    <div class="input-wrap"><input type="text" id="c_moving" inputmode="numeric" value="1,000,000"><span class="input-unit">원</span></div>
+                    <div class="readout" id="c_moving_ro"></div>
                 </div>
                 <div class="field">
                     <label>입주청소</label>
@@ -626,7 +631,7 @@
                 if(ro) ro.textContent = raw? toKorean(parseInt(raw,10)) : '';
             });
         }
-        ['i_appr','i_bid','i_sell','c_legal','c_interior_cap','c_interior_rev','c_clean','c_mgmt','c_evict','c_acqint','t_other','rc_sell','rc_target','rc_appr','sim_appr','sim_sell'].forEach(attachMoney);
+        ['i_appr','i_bid','i_sell','c_legal','c_interior_cap','c_interior_rev','c_clean','c_mgmt','c_evict','c_moving','c_acqint','t_other','rc_sell','rc_target','rc_appr','sim_appr','sim_sell'].forEach(attachMoney);
 
         // ===== tabs =====
         document.querySelectorAll('.tab').forEach(t=>{
@@ -741,16 +746,17 @@
             const interiorRev = parseNum($('c_interior_rev').value);
             const clean = parseNum($('c_clean').value);
             const mgmt = parseNum($('c_mgmt').value);
-            const evict = parseNum($('c_evict').value);
-            const acqint = parseNum($('c_acqint').value);   // 취득시 인수 이자 (법인만 취득비용 공제)
+            const evict = parseNum($('c_evict').value);     // 체납관리비(인수) — 취득부대비용 공제
+            const moving = parseNum($('c_moving').value);   // 명도비(강제집행 이사·보관 등) — 양도세 불인정
+            const acqint = parseNum($('c_acqint').value);   // 취득조건 이자인수 — 취득가액 공제
 
             const loan = bid*ratio;
             const broker = sell*brokerRate;
             const interest = loan*rate*(months/12);
             const prepayFee = loan*prepay;
-            const otherCost = broker+legal+interiorCap+interiorRev+clean+mgmt+interest+prepayFee+evict+acqint;
+            const otherCost = broker+legal+interiorCap+interiorRev+clean+mgmt+interest+prepayFee+evict+moving+acqint;
             const equity = bid - loan;
-            return { ratio,rate,months,prepay,brokerRate,legal,interiorCap,interiorRev,clean,mgmt,evict,acqint,
+            return { ratio,rate,months,prepay,brokerRate,legal,interiorCap,interiorRev,clean,mgmt,evict,moving,acqint,
                 loan,broker,interest,prepayFee,otherCost,equity };
         }
 
@@ -763,10 +769,10 @@
             const gross = sell - bid - costTotal;                  // 실제 세전 차익(전 비용 반영)
             // ===== 세금 (양도소득세 기준) =====
             // 경비 분류:
-            //   취득원가성(전 명의 공제): 취득세·법무·중개·인테리어(자본) + 명도비(체납관리비 대납)·취득조건 이자인수
-            //   부대비용(전 명의 불인정): 대출이자·중도상환·청소·관리·수선도배
-            //   → 명도비·인수이자는 otherCost에 이미 차감(공제), 가산하지 않음
-            const transferAddback = base.interest + base.prepayFee + base.clean + base.mgmt + base.interiorRev; // 전 명의 불인정(가산)
+            //   취득원가성(전 명의 공제): 취득세·법무·중개·인테리어(자본) + 체납관리비(인수)·취득조건 이자인수
+            //   부대비용(전 명의 불인정): 대출이자·중도상환·청소·관리·수선도배·명도비
+            //   → 체납관리비·인수이자는 otherCost에서 이미 차감(공제), 가산하지 않음
+            const transferAddback = base.interest + base.prepayFee + base.clean + base.mgmt + base.interiorRev + base.moving; // 전 명의 불인정(가산)
             const DED = 2500000;
             const shortRate = (prop==='house') ? (sc.holding==='lt1'?0.70:0.60) : (sc.holding==='lt1'?0.50:0.40);
 
@@ -861,9 +867,9 @@
             });
             h+='</table></div>';
             h+='<p style="font-size:11px;color:#aaa;margin:6px 2px 0">취득세 = 명의·물건유형·주택수·전용85㎡ 자동 적용(교육세·농특세 포함). 수익률 = 순수익 ÷ 각 명의 현금투입.</p>';
-            const nonDeductPersonal = b0.interiorRev + b0.interest + b0.prepayFee + b0.clean + b0.mgmt;
-            if(nonDeductPersonal>0) h+='<p style="font-size:11px;color:#c2710c;margin:6px 2px 0">※ 부대비용 <b>대출이자·중도상환·청소·관리·수선도배</b> 합계 <b>'+fmt(nonDeductPersonal)+'원</b>은 <b>전 명의 불인정</b>(과세표준 가산). 매매사업자는 종소세율이나 공제는 양도세 개념, 다주택+조정은 비교과세로 단기율↑.</p>';
-            if(b0.evict+b0.acqint>0) h+='<p style="font-size:11px;color:#0f8a52;margin:2px 2px 0">※ 명도비(체납관리비 대납)·취득조건 이자인수 <b>'+fmt(b0.evict+b0.acqint)+'원</b>은 <b>취득부대비용으로 전 명의 공제</b>. 인정 필요경비: 취득세·법무·중개·인테리어(자본).</p>';
+            const nonDeductPersonal = b0.interiorRev + b0.interest + b0.prepayFee + b0.clean + b0.mgmt + b0.moving;
+            if(nonDeductPersonal>0) h+='<p style="font-size:11px;color:#c2710c;margin:6px 2px 0">※ 부대비용 <b>대출이자·중도상환·청소·관리·수선도배·명도비</b> 합계 <b>'+fmt(nonDeductPersonal)+'원</b>은 <b>전 명의 불인정</b>(과세표준 가산). 매매사업자는 종소세율이나 공제는 양도세 개념, 다주택+조정은 비교과세로 단기율↑.</p>';
+            if(b0.evict+b0.acqint>0) h+='<p style="font-size:11px;color:#0f8a52;margin:2px 2px 0">※ 체납관리비(인수)·취득조건 이자인수 <b>'+fmt(b0.evict+b0.acqint)+'원</b>은 <b>취득부대비용으로 전 명의 공제</b>. 인정 필요경비: 취득세·법무·중개·인테리어(자본).</p>';
             if(state.prop==='house' && heavyExempt) h+='<p style="font-size:11px;color:#0f8a52;margin:2px 2px 0">※ 공시가격 '+(state.metro==='local'?'비수도권 2억':'1억')+' 이하 → 법인·다주택 취득세 <b>중과배제</b>, 기본세율 적용.</p>';
             if(anyVat) h+='<p style="font-size:11px;color:#aaa;margin:2px 2px 0">부가세 = 매도가 × 건물분 '+(buildingRatio*100).toFixed(0)+'% × 10% (매매사업자·법인, '+(state.prop==='house'?'주택 85㎡초과':'비주택')+' 과세 / 매입세액공제 미반영).</p>';
 
@@ -878,7 +884,9 @@
             h+=row('관리비', fmt(b0.mgmt), '');
             h+=row('대출이자', fmt(b0.interest), (b0.rate*100)+'% × '+b0.months+'개월');
             h+=row('중도상환수수료', fmt(b0.prepayFee), (b0.prepay*100)+'% × 대출액');
-            h+=row('명도비', fmt(b0.evict), '');
+            h+=row('체납관리비(인수)', fmt(b0.evict), '취득부대비용·공제');
+            h+=row('명도비', fmt(b0.moving), '양도세 불인정');
+            h+=row('취득조건 이자인수', fmt(b0.acqint), '취득가액·공제');
             h+=row('<b>공통비용 합계</b>', '<b>'+fmt(b0.otherCost)+'</b>', '+ 명의별 취득세', 'total2');
             h+=secRow('투자 · 현금 ('+best.sc.name+' 기준)');
             h+=row('매도가 − 낙찰가', fmt(sell-bid), '');
@@ -992,22 +1000,22 @@
             const sub=t=>`<span class="ln" style="opacity:.65;font-size:11px;padding-left:14px">${t}</span>`;
             let s='';
             s+=ln('① 공통비용', w(b.otherCost)+'원');
-            s+=sub(`중개 ${w(b.broker)} + 법무 ${w(b.legal)} + 인테리어(자본) ${w(b.interiorCap)} + 수선·도배 ${w(b.interiorRev)} + 청소 ${w(b.clean)} + 관리 ${w(b.mgmt)} + 대출이자 ${w(b.interest)} + 중도상환 ${w(b.prepayFee)} + 명도 ${w(b.evict)} + 인수이자 ${w(b.acqint)}`);
+            s+=sub(`중개 ${w(b.broker)} + 법무 ${w(b.legal)} + 인테리어(자본) ${w(b.interiorCap)} + 수선·도배 ${w(b.interiorRev)} + 청소 ${w(b.clean)} + 관리 ${w(b.mgmt)} + 대출이자 ${w(b.interest)} + 중도상환 ${w(b.prepayFee)} + 체납관리비 ${w(b.evict)} + 명도 ${w(b.moving)} + 인수이자 ${w(b.acqint)}`);
             s+=ln('② 취득세', `낙찰가 × ${(r.ar*100).toFixed(1)}% = ${w(r.acq)}원`);
             s+=ln('③ 시세차익', `매도 ${w(sell)} − 낙찰 ${w(bid)} − (공통비용+취득세 ${w(b.otherCost+r.acq)}) = ${w(r.gross)}원`);
             if(r.sc.holding==='exempt'){
                 s+=ln('④ 세금', '1세대1주택 2년 비과세 = 0원');
             } else if(r.sc.entity==='personal'){
                 s+=ln('④ 과세표준', `시세차익 ${w(r.gross)} + 양도세 불인정 ${w(r.nonDeduct)} − 기본공제 ${w(r.deduction)} = ${w(r.taxBase)}원`);
-                s+=sub('불인정(가산) = 대출이자 + 중도상환 + 청소 + 관리 + 수선·도배  (명도·인수이자는 취득원가라 공제)');
+                s+=sub('불인정(가산) = 대출이자 + 중도상환 + 청소 + 관리 + 수선·도배 + 명도  (체납관리비·인수이자는 취득원가라 공제)');
                 s+=ln('⑤ 양도세 ('+r.label+')', `${w(r.tax)}원  (+지방세 ${w(r.localTax)}원)`);
             } else if(r.sc.entity==='business'){
-                s+=sub('종합소득세율이나 공제는 양도세 개념 — 부대비용(이자·중도상환·청소·관리·수선도배) 불인정'+(r.sc.bizMulti?' / 다주택+조정 → 비교과세':''));
+                s+=sub('종합소득세율이나 공제는 양도세 개념 — 부대비용(이자·중도상환·청소·관리·수선도배·명도) 불인정'+(r.sc.bizMulti?' / 다주택+조정 → 비교과세':''));
                 if(r.deduction>0) s+=ln('④ 과세표준', `[양도세 방식] 시세차익 ${w(r.gross)} + 부대비용 불인정 ${w(r.nonDeduct)} − 공제 ${w(r.deduction)} = ${w(r.taxBase)}원`);
                 else s+=ln('④ 과세표준', `[종합소득세] 시세차익 ${w(r.gross)} + 부대비용 불인정 ${w(r.nonDeduct)} = ${w(r.taxBase)}원`);
                 s+=ln('⑤ 세금 ('+r.label+')', `${w(r.tax)}원  (+지방세 ${w(r.localTax)}원)`);
             } else { // corp
-                s+=sub('부대비용(이자·중도상환·청소·관리·수선도배) 불인정 (필요경비·명도·인수이자는 공제)');
+                s+=sub('부대비용(이자·중도상환·청소·관리·수선도배·명도) 불인정 (필요경비·체납관리비·인수이자는 공제)');
                 s+=ln('④ 과세표준', `시세차익 ${w(r.gross)} + 부대비용 불인정 ${w(r.nonDeduct)} = ${w(r.taxBase)}원`);
                 s+=ln('⑤ 법인세 본세', `${w(r.baseTax)}원`);
                 if(r.sur>0) s+=ln('⑤ 주택 추가세율 20%', `${w(r.surBase)} × 20% = ${w(r.sur)}원`);
@@ -1063,7 +1071,7 @@
         }
 
         // ===== 입력값 저장/복원 + URL 공유 =====
-        const ALL_INPUTS = ['i_case','i_appr','i_bid','i_sell','rc_sell','rc_target','rc_appr','sim_appr','sim_sell','sim_from','sim_to','sim_step','l_ratio','l_rate','l_months','l_prepay','c_legal','c_brokerrate','c_interior_cap','c_interior_rev','c_clean','c_mgmt','c_evict','c_acqint','t_other','b_ratio','mk_addr','mk_area','mk_tol'];
+        const ALL_INPUTS = ['i_case','i_appr','i_bid','i_sell','rc_sell','rc_target','rc_appr','sim_appr','sim_sell','sim_from','sim_to','sim_step','l_ratio','l_rate','l_months','l_prepay','c_legal','c_brokerrate','c_interior_cap','c_interior_rev','c_clean','c_mgmt','c_evict','c_moving','c_acqint','t_other','b_ratio','mk_addr','mk_area','mk_tol'];
         const SEG_KEYS = ['prop','houses','metro','pub','area84','adj'];
         const STORE_KEY = 'auction:v1';
 
