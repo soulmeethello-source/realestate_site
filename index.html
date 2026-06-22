@@ -351,21 +351,6 @@
         [data-theme="dark"] .header-cta { background: #262a32; color: #6db3ff; }
         [data-theme="dark"] .theme-toggle { background: #262a32; border-color: #3a3f4a; color: #ffd479; }
 
-        /* ===== 즐겨찾기 ===== */
-        .fav-star {
-            cursor: pointer; font-size: 17px; color: #cbd2db; line-height: 1;
-            padding: 0 1px; user-select: none; flex-shrink: 0;
-            transition: transform 0.15s, color 0.15s;
-        }
-        .fav-star:hover { transform: scale(1.25); color: #f5b301; }
-        .fav-star.on { color: #f5b301; }
-        [data-theme="dark"] .fav-star { color: #555b66; }
-        [data-theme="dark"] .fav-star.on { color: #f5b301; }
-        .site-card .site-name { flex: 1; }
-        .site-card-header { gap: 6px; }
-        #cat-favorites .category-title { color: #c79100; border-bottom-color: #f5b301; }
-        #cat-favorites .category-icon { background: #f5b301; }
-
         /* ===== 모바일: 카테고리 네비 가로 스크롤 1줄 ===== */
         @media (max-width: 768px) {
             .category-nav-inner { flex-wrap: nowrap; justify-content: flex-start; }
@@ -382,7 +367,7 @@
         <p>부동산 투자자가 만든 부동산 사이트 핵심 모음</p>
         <div class="header-ctas">
             <a href="/auction/" class="header-cta">&#129518; 경매 수익률 분석기</a>
-            <a href="/ranking/" class="header-cta">&#127962; 단타 지역 랭킹</a>
+            <a href="/ranking/" class="header-cta">&#127962; 수도권 빌라 거래량</a>
         </div>
     </div>
 
@@ -409,16 +394,6 @@
     </nav>
 
     <div class="container" id="content">
-
-        <!-- 즐겨찾기 (자동 생성) -->
-        <section class="category-section" id="cat-favorites" data-category="favorites" style="display:none">
-            <h2 class="category-title">
-                <span class="category-icon">&#11088;</span>
-                즐겨찾기
-                <span class="category-count"></span>
-            </h2>
-            <div class="cards-grid"></div>
-        </section>
 
         <!-- 종합 -->
         <section class="category-section" id="cat-종합" data-category="종합">
@@ -954,8 +929,7 @@
     <script data-goatcounter="https://soulmeethello.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
     <script>
         function updateVisitorCount() {
-            var path = encodeURIComponent(location.pathname);
-            var base = 'https://soulmeethello.goatcounter.com/counter/' + path + '.json';
+            var base = 'https://soulmeethello.goatcounter.com/counter/TOTAL.json';  // 사이트 전체 통합 값
             var today = new Date().toISOString().slice(0, 10);
 
             var r1 = new XMLHttpRequest();
@@ -1054,61 +1028,6 @@
                 });
             }
             setIcon();
-        })();
-
-        // ===== 즐겨찾기 =====
-        (function(){
-            let favs;
-            try{ favs = new Set(JSON.parse(localStorage.getItem('favs')||'[]')); }catch(e){ favs = new Set(); }
-
-            // 원본 카드 전체 (즐겨찾기 섹션 제외). 같은 이름이 여러 카테고리에 중복될 수 있음.
-            const origCards = [...document.querySelectorAll('.category-section:not(#cat-favorites) .site-card')];
-            // 이름→대표 노드 매핑 (즐겨찾기 섹션에 1개만 복제)
-            const cardByName = {};
-            origCards.forEach(c=>{ const n = c.dataset.name; if(n && !cardByName[n]) cardByName[n] = c; });
-
-            // 모든 원본 카드에 별 아이콘 주입 (중복 카드 포함)
-            origCards.forEach(card=>{
-                const header = card.querySelector('.site-card-header');
-                if(!header || header.querySelector('.fav-star')) return;
-                const star = document.createElement('span');
-                star.className = 'fav-star';
-                star.textContent = '☆';
-                const ext = header.querySelector('.external-icon');
-                if(ext) header.insertBefore(star, ext); else header.appendChild(star);
-            });
-
-            function save(){ try{ localStorage.setItem('favs', JSON.stringify([...favs])); }catch(e){} }
-            function syncStars(){
-                document.querySelectorAll('.site-card').forEach(card=>{
-                    const s = card.querySelector('.fav-star'); if(!s) return;
-                    const on = favs.has(card.dataset.name);
-                    s.classList.toggle('on', on); s.textContent = on ? '★' : '☆';
-                });
-            }
-            function render(){
-                const sec = document.getElementById('cat-favorites');
-                const grid = sec.querySelector('.cards-grid');
-                grid.innerHTML = '';
-                const names = [...favs].filter(n => cardByName[n]);
-                sec.style.display = names.length ? '' : 'none';
-                sec.querySelector('.category-count').textContent = names.length ? names.length + '개' : '';
-                names.forEach(n=>{ grid.appendChild(cardByName[n].cloneNode(true)); });
-                syncStars();
-            }
-            window.toggleFav = function(name){
-                if(favs.has(name)) favs.delete(name); else favs.add(name);
-                save(); render();
-            };
-            // 별 클릭 위임 (원본·복제본 모두 처리, 링크 이동 차단)
-            document.addEventListener('click', e=>{
-                const star = e.target.closest('.fav-star');
-                if(!star) return;
-                e.preventDefault(); e.stopPropagation();
-                const card = star.closest('.site-card');
-                if(card) window.toggleFav(card.dataset.name);
-            });
-            render();
         })();
     </script>
 </body>

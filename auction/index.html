@@ -286,8 +286,8 @@
         <h1>경매 수익률 분석기</h1>
         <p>레버리지·세금 반영 순수익 분석 + 목표 낙찰가 역산</p>
         <a class="home-link" href="/">← 부동산 사이트 모음</a>
-        <a class="home-link" href="/ranking/" style="margin-left:6px;">🏘️ 단타 지역 랭킹</a>
-        <button type="button" class="home-link" id="shareBtn" style="border:none;cursor:pointer;font-family:inherit;margin-left:6px;">🔗 공유 링크 복사</button>
+        <a class="home-link" href="/ranking/" style="margin-left:6px;">🏘️ 수도권 빌라 거래량</a>
+        <button type="button" class="home-link" id="shareBtn" style="border:none;cursor:pointer;font-family:inherit;margin-left:6px;">🔗 공유하기</button>
     </div>
 
     <div class="container">
@@ -588,14 +588,16 @@
             <a class="qlink" href="https://www.disco.re/" target="_blank" rel="noopener"><span class="n">디스코</span><span class="d">실거래가·시세</span></a>
             <a class="qlink" href="https://www.iros.go.kr/" target="_blank" rel="noopener"><span class="n">인터넷등기소</span><span class="d">등기부등본</span></a>
             <a class="qlink" href="https://xn--989a00af8jnslv3dba.com/" target="_blank" rel="noopener"><span class="n">부동산 계산기</span><span class="d">취득세·양도세</span></a>
-            <a class="qlink" href="/ranking/"><span class="n">단타 지역 랭킹 →</span><span class="d">수도권 빌라 실거래 분석</span></a>
+            <a class="qlink" href="/ranking/"><span class="n">수도권 빌라 거래량 →</span><span class="d">수도권 빌라 실거래 분석</span></a>
             <a class="qlink" href="/"><span class="n">부동산 사이트 모음 →</span><span class="d">전체 44개</span></a>
         </div>
     </div>
 
     <footer class="footer">
-        경매 수익률 분석기 · 레버리지·세금 반영 순수익 분석<br>
-        ※ 세금은 참고용 추정치입니다(2026.6 기준). 조정대상지역 지정·양도세 한시중과배제·비교과세·감면 등은 정책에 따라 자주 바뀌므로 실제 적용은 세무 전문가와 확인하세요.
+        경매 수익률 분석기 &copy; 2026 &middot; 최종 업데이트: 2026.6.23<br>
+        사이트 추가 및 기능 건의 &middot; <a href="mailto:chioyhappy@gmail.com?subject=%5B%EA%B2%BD%EB%A7%A4%20%EC%88%98%EC%9D%B5%EB%A5%A0%20%EB%B6%84%EC%84%9D%EA%B8%B0%5D" style="color:#007AFF;text-decoration:none;">chioyhappy@gmail.com</a><br>
+        누적 방문자 <span id="visitor-total">-</span> &middot; 오늘 <span id="visitor-today">-</span><br>
+        <span style="color:#aaa;font-size:11px;">※ 세금은 참고용 추정치입니다(2026.6 기준). 조정대상지역·양도세 한시중과배제·비교과세 등 정책 변동 시 세무 전문가와 확인하세요.</span>
     </footer>
 
     <script>
@@ -1105,16 +1107,17 @@
         ALL_INPUTS.forEach(id=>{ const el=$(id); if(el) el.addEventListener('input', saveLocal); });
         document.querySelectorAll('.seg-group').forEach(g=>g.addEventListener('click', e=>{ if(e.target.closest('.seg')) saveLocal(); }));
 
-        // URL 공유
-        function buildShareURL(){
-            const enc = btoa(unescape(encodeURIComponent(JSON.stringify(collectData()))));
-            return location.origin + location.pathname + '?d=' + enc;
-        }
+        // 공유 — 깔끔한 주소 + 메시지
+        const SHARE_URL = 'https://estate.lifetiming.kr/auction';
+        const SHARE_MSG = '경매 수익률 분석기 — 낙찰가·세금 반영 세후 수익률을 바로 계산해보세요';
         $('shareBtn').addEventListener('click', async ()=>{
-            const url = buildShareURL();
             const flash = msg => { const b=$('shareBtn'); const o=b.dataset.orig||(b.dataset.orig=b.textContent); b.textContent=msg; setTimeout(()=>b.textContent=o,1600); };
-            try{ await navigator.clipboard.writeText(url); flash('✓ 링크 복사됨'); }
-            catch(e){ window.prompt('아래 공유 링크를 복사하세요:', url); }
+            if(navigator.share){
+                try{ await navigator.share({ title:'경매 수익률 분석기', text:SHARE_MSG, url:SHARE_URL }); return; }
+                catch(e){ if(e && e.name==='AbortError') return; /* 그 외엔 복사로 폴백 */ }
+            }
+            try{ await navigator.clipboard.writeText(SHARE_MSG + '\n' + SHARE_URL); flash('✓ 복사됨'); }
+            catch(e){ window.prompt('아래 링크를 복사하세요:', SHARE_URL); }
         });
 
         // ===== 시세조사 딥링크 생성 =====
@@ -1235,5 +1238,14 @@
 
     <!-- GoatCounter 방문자 추적 (index.html과 동일 계정) -->
     <script data-goatcounter="https://soulmeethello.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+    <!-- 사이트 전체 방문자 수 (부동산 사이트 모음 통합 값) -->
+    <script>
+        (function(){
+            var base='https://soulmeethello.goatcounter.com/counter/TOTAL.json';
+            var today=new Date().toISOString().slice(0,10);
+            function set(id,url){ var r=new XMLHttpRequest(); r.addEventListener('load',function(){ try{ var el=document.getElementById(id); if(el) el.innerText=JSON.parse(this.responseText).count.toLocaleString(); }catch(e){} }); r.open('GET',url); r.send(); }
+            setTimeout(function(){ set('visitor-total',base); set('visitor-today',base+'?start='+today); },800);
+        })();
+    </script>
 </body>
 </html>
