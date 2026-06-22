@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>경매 수익률 분석기</title>
+    <title>경매 수익률 계산기 | 낙찰가·세후순익 분석기</title>
     <meta name="description" content="부동산 경매 수익률·세후순익·목표 낙찰가 역산 분석기">
-    <meta property="og:title" content="경매 수익률 분석기">
+    <meta property="og:title" content="경매 수익률 계산기">
     <meta property="og:description" content="레버리지·세금 반영 순수익 분석 + 목표 낙찰가 역산">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://estate.lifetiming.kr/auction/">
@@ -287,7 +287,7 @@
 <body>
     <button class="theme-toggle" id="themeToggle" title="다크모드 전환" aria-label="다크모드 전환">🌙</button>
     <div class="header">
-        <h1>경매 수익률 분석기</h1>
+        <h1>경매 수익률 계산기</h1>
         <p>레버리지·세금 반영 순수익 분석 + 목표 낙찰가 역산</p>
         <a class="home-link" href="/">← 부동산 사이트 모음</a>
         <a class="home-link" href="/ranking/" style="margin-left:6px;">🏘️ 수도권 빌라 거래량</a>
@@ -598,15 +598,15 @@
     </div>
 
     <footer class="footer">
-        경매 수익률 분석기 &copy; 2026 &middot; 최종 업데이트: 2026.6.23
+        경매 수익률 계산기 &copy; 2026 &middot; 최종 업데이트: 2026.6.23
         <div class="footer-contact">
-            사이트 추가 및 기능 건의 &middot; <a href="mailto:chioyhappy@gmail.com?subject=%5B%EA%B2%BD%EB%A7%A4%20%EC%88%98%EC%9D%B5%EB%A5%A0%20%EB%B6%84%EC%84%9D%EA%B8%B0%5D">chioyhappy@gmail.com</a>
+            사이트 추가, 기능 건의, 오류 제보 &middot; <a href="mailto:chioyhappy@gmail.com?subject=%5B%EA%B2%BD%EB%A7%A4%20%EC%88%98%EC%9D%B5%EB%A5%A0%20%EB%B6%84%EC%84%9D%EA%B8%B0%5D">chioyhappy@gmail.com</a>
         </div>
         <div class="footer-contact">
-            오늘 방문자 수: <span id="visitor-today">-</span>
+            오늘 조회수: <span id="visitor-today">-</span>
         </div>
         <div class="footer-contact">
-            총 방문자 수: <span id="visitor-total">-</span>
+            누적 조회수: <span id="visitor-total">-</span>
         </div>
         <div class="footer-contact" style="color:#aaa;font-size:11px;">
             ※ 세금은 참고용 추정치(2026.6 기준) · 정책 변동 시 세무 전문가와 확인
@@ -1067,13 +1067,15 @@
                 const fname=memo+'.png';
                 const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
                 const file=new File([blob], fname, {type:'image/png'});
-                // 모바일: 공유 시트(→ 사진에 저장) / 데스크톱·미지원: 다운로드
-                if(navigator.canShare && navigator.canShare({files:[file]})){
+                // 모바일만 공유 시트(→ 사진에 저장) / 데스크톱은 항상 다운로드
+                const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                if(isMobile && navigator.canShare && navigator.canShare({files:[file]})){
                     try{ await navigator.share({files:[file], title:'경매 수익률 분석'}); if(btn)btn.textContent=orig; return; }
                     catch(e){ if(e && e.name==='AbortError'){ if(btn)btn.textContent=orig; return; } /* 그 외엔 다운로드로 폴백 */ }
                 }
                 const url=URL.createObjectURL(blob);
-                const a=document.createElement('a'); a.download=fname; a.href=url; a.click();
+                const a=document.createElement('a'); a.download=fname; a.href=url;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);  // DOM에 붙여야 사파리/파폭에서도 다운로드됨
                 setTimeout(()=>URL.revokeObjectURL(url),1000);
             }catch(e){ alert('이미지 저장 실패: '+e.message); }
             finally{ if(btn) btn.textContent=orig; }
@@ -1122,11 +1124,11 @@
 
         // 공유 — 깔끔한 주소 + 메시지
         const SHARE_URL = 'https://estate.lifetiming.kr/auction';
-        const SHARE_MSG = '경매 수익률 분석기 — 낙찰가·세금 반영 세후 수익률을 바로 계산해보세요';
+        const SHARE_MSG = '경매 수익률 계산기 — 낙찰가·세금 반영 세후 수익률을 바로 계산해보세요';
         $('shareBtn').addEventListener('click', async ()=>{
             const flash = msg => { const b=$('shareBtn'); const o=b.dataset.orig||(b.dataset.orig=b.textContent); b.textContent=msg; setTimeout(()=>b.textContent=o,1600); };
             if(navigator.share){
-                try{ await navigator.share({ title:'경매 수익률 분석기', text:SHARE_MSG, url:SHARE_URL }); return; }
+                try{ await navigator.share({ title:'경매 수익률 계산기', text:SHARE_MSG, url:SHARE_URL }); return; }
                 catch(e){ if(e && e.name==='AbortError') return; /* 그 외엔 복사로 폴백 */ }
             }
             try{ await navigator.clipboard.writeText(SHARE_MSG + '\n' + SHARE_URL); flash('✓ 복사됨'); }
@@ -1254,7 +1256,7 @@
     <!-- 사이트 전체 방문자 수 (부동산 사이트 모음 통합 값) -->
     <script>
         (function(){
-            var base='https://soulmeethello.goatcounter.com/counter/%2F.json';
+            var base='https://soulmeethello.goatcounter.com/counter/TOTAL.json';
             var today=new Date().toISOString().slice(0,10);
             function set(id,url){ var r=new XMLHttpRequest(); r.addEventListener('load',function(){ try{ var el=document.getElementById(id); if(el) el.innerText=JSON.parse(this.responseText).count.toLocaleString(); }catch(e){} }); r.open('GET',url); r.send(); }
             setTimeout(function(){ set('visitor-total',base); set('visitor-today',base+'?start='+today); },800);

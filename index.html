@@ -170,6 +170,16 @@
             margin-left: auto;
         }
 
+        .subcat {
+            font-size: 14px;
+            font-weight: 700;
+            color: #555;
+            margin: 22px 0 10px;
+            padding-left: 2px;
+        }
+        .subcat:first-of-type { margin-top: 12px; }
+        [data-theme="dark"] .subcat { color: #aab0bb; }
+
         /* Site Cards */
         .cards-grid {
             display: grid;
@@ -366,7 +376,7 @@
         <h1>부동산 사이트 모음</h1>
         <p>부동산 투자자가 만든 부동산 사이트 핵심 모음</p>
         <div class="header-ctas">
-            <a href="/auction/" class="header-cta">&#129518; 경매 수익률 분석기</a>
+            <a href="/auction/" class="header-cta">&#129518; 경매 수익률 계산기</a>
             <a href="/ranking/" class="header-cta">&#127962; 수도권 빌라 거래량</a>
         </div>
     </div>
@@ -489,9 +499,17 @@
             <h2 class="category-title">
                 <span class="category-icon">&#128178;</span>
                 세금
-                <span class="category-count">1개 사이트</span>
+                <span class="category-count">2개 사이트</span>
             </h2>
             <div class="cards-grid">
+                <a href="/auction/" class="site-card" data-name="경매 수익률 계산기" data-desc="낙찰가·세후순익 분석, 취득세·양도세 명의별 자동 계산">
+                    <div class="site-card-header">
+                        <span class="site-name">경매 수익률 계산기</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">낙찰가·세후순익 분석, 취득세·양도세 명의별 자동 계산</div>
+                    <div class="site-url">자체 도구</div>
+                </a>
                 <a href="https://xn--989a00af8jnslv3dba.com/" target="_blank" rel="noopener" class="site-card" data-name="부동산 계산기" data-desc="중개수수료, 양도소득세, 취득세">
                     <div class="site-card-header">
                         <span class="site-name">부동산 계산기</span>
@@ -578,7 +596,7 @@
             <h2 class="category-title">
                 <span class="category-icon">&#128176;</span>
                 시세
-                <span class="category-count">4개 사이트</span>
+                <span class="category-count">5개 사이트</span>
             </h2>
             <div class="cards-grid">
                 <a href="https://rt.molit.go.kr/" target="_blank" rel="noopener" class="site-card" data-name="국토교통부 실거래가공개시스템" data-desc="시세 정보 원본데이터">
@@ -588,6 +606,14 @@
                     </div>
                     <div class="site-desc">시세 정보 원본데이터</div>
                     <div class="site-url">rt.molit.go.kr</div>
+                </a>
+                <a href="https://www.realtyprice.kr/notice/main/main.do" target="_blank" rel="noopener" class="site-card" data-name="부동산 공시가격 알리미" data-desc="주택공시가격, 토지 공시지가 열람">
+                    <div class="site-card-header">
+                        <span class="site-name">🆕 부동산 공시가격 알리미</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">주택공시가격, 토지 공시지가 열람</div>
+                    <div class="site-url">realtyprice.kr</div>
                 </a>
                 <a href="https://property.bdsplanet.com/" target="_blank" rel="noopener" class="site-card" data-name="부동산플래닛" data-desc="빌딩, 상가, 공장, 토지 실거래가">
                     <div class="site-card-header">
@@ -696,24 +722,26 @@
             <h2 class="category-title">
                 <span class="category-icon">&#127959;</span>
                 재개발/재건축
-                <span class="category-count">15개 사이트</span>
+                <span class="category-count">18개 사이트</span>
             </h2>
+
+            <h3 class="subcat">📋 일반</h3>
             <div class="cards-grid">
-                <a href="https://cleanup.seoul.go.kr/" target="_blank" rel="noopener" class="site-card" data-name="정비사업 정보몽땅" data-desc="재개발재건축 추진현황">
+                <a href="https://cleanup.seoul.go.kr/" target="_blank" rel="noopener" class="site-card" data-name="정비사업 정보몽땅" data-desc="서울특별시 재개발재건축 추진현황">
                     <div class="site-card-header">
                         <span class="site-name">정비사업 정보몽땅</span>
                         <span class="external-icon">&#8599;</span>
                     </div>
-                    <div class="site-desc">재개발재건축 추진현황</div>
+                    <div class="site-desc">서울특별시 재개발재건축 추진현황</div>
                     <div class="site-url">cleanup.seoul.go.kr</div>
                 </a>
-                <a href="https://www.seoul.go.kr/news/news_report.do?bbsNo=158&cntPerPage=10&curPage=1&srchText=%EB%8F%84%EC%8B%9C%EA%B3%84%ED%9A%8D%EC%9C%84%EC%9B%90%ED%9A%8C" target="_blank" rel="noopener" class="site-card" data-name="서울특별시 도시계획위원회 보도자료" data-desc="도시계획위원회(정비사업 지정) 보도자료 원문, 재개발 재건축 뉴스">
+                <a href="https://renewal.incheon.go.kr/ires/index.do" target="_blank" rel="noopener" class="site-card" data-name="인천광역시 추정분담금 정보시스템" data-desc="인천광역시 재개발재건축 추진현황, 추정분담금">
                     <div class="site-card-header">
-                        <span class="site-name">서울시 도시계획위원회 보도자료</span>
+                        <span class="site-name">🆕 인천 추정분담금 정보시스템</span>
                         <span class="external-icon">&#8599;</span>
                     </div>
-                    <div class="site-desc">도시계획위원회(정비사업 지정) 보도자료 원문, 재개발 재건축 뉴스</div>
-                    <div class="site-url">seoul.go.kr</div>
+                    <div class="site-desc">인천광역시 재개발재건축 추진현황</div>
+                    <div class="site-url">renewal.incheon.go.kr</div>
                 </a>
                 <a href="https://asil.kr" target="_blank" rel="noopener" class="site-card" data-name="아실" data-desc="아파트 시세, 학군비교, 재개발 구역계 간략 확인">
                     <div class="site-card-header">
@@ -739,22 +767,26 @@
                     <div class="site-desc">구역별 실거래가, 진행상황 정보</div>
                     <div class="site-url">jaegebal.com</div>
                 </a>
-                <a href="http://udp.or.kr/v2.0/" target="_blank" rel="noopener" class="site-card" data-name="도시개발신문" data-desc="재개발 재건축 뉴스">
+                <a href="https://www.eum.go.kr/web/gs/gv/gvGosiList.jsp" target="_blank" rel="noopener" class="site-card" data-name="재개발 지형도면 고시" data-desc="사업명에 구역명 검색 후 구역계 확인">
                     <div class="site-card-header">
-                        <span class="site-name">도시개발신문</span>
+                        <span class="site-name">🆕 재개발 지형도면 고시</span>
                         <span class="external-icon">&#8599;</span>
                     </div>
-                    <div class="site-desc">재개발 재건축 뉴스</div>
-                    <div class="site-url">udp.or.kr</div>
+                    <div class="site-desc">사업명에 구역명 검색 후 구역계 확인</div>
+                    <div class="site-url">eum.go.kr</div>
                 </a>
-                <a href="https://www.housingherald.co.kr/" target="_blank" rel="noopener" class="site-card" data-name="하우징헤럴드" data-desc="재개발 재건축 뉴스">
+                <a href="https://map.ngii.go.kr/ms/map/NlipMap.do" target="_blank" rel="noopener" class="site-card" data-name="국토정보맵" data-desc="1989년 1월 24일 당시 무허가 건축물 증빙자료">
                     <div class="site-card-header">
-                        <span class="site-name">하우징헤럴드</span>
+                        <span class="site-name">🆕 국토정보맵</span>
                         <span class="external-icon">&#8599;</span>
                     </div>
-                    <div class="site-desc">재개발 재건축 뉴스</div>
-                    <div class="site-url">housingherald.co.kr</div>
+                    <div class="site-desc">1989.1.24 당시 무허가 건축물 증빙자료</div>
+                    <div class="site-url">map.ngii.go.kr</div>
                 </a>
+            </div>
+
+            <h3 class="subcat">🏘️ 모아타운</h3>
+            <div class="cards-grid">
                 <a href="https://www.eum.go.kr/web/cp/hr/hrPeopleHearList.jsp" target="_blank" rel="noopener" class="site-card" data-name="모아타운 관리계획 수립(안)" data-desc="공고명에 모아타운 검색">
                     <div class="site-card-header">
                         <span class="site-name">모아타운 관리계획 수립(안)</span>
@@ -820,6 +852,34 @@
                     <div class="site-url">gwanak.go.kr</div>
                 </a>
             </div>
+
+            <h3 class="subcat">📰 뉴스</h3>
+            <div class="cards-grid">
+                <a href="https://www.seoul.go.kr/news/news_report.do?bbsNo=158&cntPerPage=10&curPage=1&srchText=%EB%8F%84%EC%8B%9C%EA%B3%84%ED%9A%8D%EC%9C%84%EC%9B%90%ED%9A%8C" target="_blank" rel="noopener" class="site-card" data-name="서울특별시 도시계획위원회 보도자료" data-desc="도시계획위원회(정비사업 지정) 보도자료 원문, 재개발 재건축 뉴스">
+                    <div class="site-card-header">
+                        <span class="site-name">서울시 도시계획위원회 보도자료</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">도시계획위원회(정비사업 지정) 보도자료 원문, 재개발 재건축 뉴스</div>
+                    <div class="site-url">seoul.go.kr</div>
+                </a>
+                <a href="http://udp.or.kr/v2.0/" target="_blank" rel="noopener" class="site-card" data-name="도시개발신문" data-desc="재개발 재건축 뉴스">
+                    <div class="site-card-header">
+                        <span class="site-name">도시개발신문</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">재개발 재건축 뉴스</div>
+                    <div class="site-url">udp.or.kr</div>
+                </a>
+                <a href="https://www.housingherald.co.kr/" target="_blank" rel="noopener" class="site-card" data-name="하우징헤럴드" data-desc="재개발 재건축 뉴스">
+                    <div class="site-card-header">
+                        <span class="site-name">하우징헤럴드</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">재개발 재건축 뉴스</div>
+                    <div class="site-url">housingherald.co.kr</div>
+                </a>
+            </div>
         </section>
 
         <!-- 경매/공매 -->
@@ -830,10 +890,10 @@
                 <span class="category-count">4개 사이트</span>
             </h2>
             <div class="cards-grid">
-                <a href="/auction/" class="site-card" data-name="경매 수익률 분석기" data-desc="레버리지·세금 반영 순수익 분석, 목표 낙찰가 역산, 입찰가 시뮬레이션">
+                <a href="/auction/" class="site-card" data-name="경매 수익률 계산기" data-desc="레버리지·세금 반영 순수익 분석, 목표 낙찰가 역산, 입찰가 시뮬레이션">
                     <div class="site-card-header">
-                        <span class="site-name">경매 수익률 분석기</span>
-                        <span class="external-icon">&#129518;</span>
+                        <span class="site-name">경매 수익률 계산기</span>
+                        <span class="external-icon">&#8599;</span>
                     </div>
                     <div class="site-desc">레버리지·세금 반영 순수익 분석, 목표 낙찰가 역산, 입찰가 시뮬레이션</div>
                     <div class="site-url">자체 도구</div>
@@ -914,22 +974,22 @@
     </div>
 
     <footer class="footer">
-        부동산 사이트 모음 &copy; 2026 &middot; 총 44개 사이트 &middot; 최종 업데이트: 2026.2.20
+        부동산 사이트 모음 &copy; 2026 &middot; 총 48개 사이트 &middot; 최종 업데이트: 2026.6.23
         <div class="footer-contact">
-            사이트 추가 및 기능 건의 &middot; <a href="mailto:chioyhappy@gmail.com?subject=%5B%EB%B6%80%EB%8F%99%EC%82%B0%20%EC%82%AC%EC%9D%B4%ED%8A%B8%20%EB%AA%A8%EC%9D%8C%5D">chioyhappy@gmail.com</a>
+            사이트 추가, 기능 건의, 오류 제보 &middot; <a href="mailto:chioyhappy@gmail.com?subject=%5B%EB%B6%80%EB%8F%99%EC%82%B0%20%EC%82%AC%EC%9D%B4%ED%8A%B8%20%EB%AA%A8%EC%9D%8C%5D">chioyhappy@gmail.com</a>
         </div>
         <div class="footer-contact">
-            오늘 방문자 수: <span id="visitor-today">-</span>
+            오늘 조회수: <span id="visitor-today">-</span>
         </div>
         <div class="footer-contact">
-            총 방문자 수: <span id="visitor-total">-</span>
+            누적 조회수: <span id="visitor-total">-</span>
         </div>
     </footer>
 
     <script data-goatcounter="https://soulmeethello.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
     <script>
         function updateVisitorCount() {
-            var base = 'https://soulmeethello.goatcounter.com/counter/%2F.json';  // 메인(부동산 사이트 모음) 방문수
+            var base = 'https://soulmeethello.goatcounter.com/counter/TOTAL.json';  // 사이트 누적 조회수
             var today = new Date().toISOString().slice(0, 10);
 
             var r1 = new XMLHttpRequest();

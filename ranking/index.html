@@ -95,7 +95,7 @@
         <h1>🏘️ 수도권 빌라 거래량 분석 랭킹</h1>
         <p id="subhead">연립다세대 매매 실거래가 기반 · 유동성 + 법인매수 신호</p>
         <a class="home-link" href="/">← 부동산 사이트 모음</a>
-        <a class="home-link" href="/auction/" style="margin-left:8px;">&#129518; 경매 수익률 분석기</a>
+        <a class="home-link" href="/auction/" style="margin-left:8px;">&#129518; 경매 수익률 계산기</a>
     </div>
 
     <div class="container">
@@ -161,23 +161,23 @@
     <footer class="footer">
         수도권 빌라 거래량 &copy; 2026 &middot; 최종 업데이트: 2026.6.23
         <div class="footer-contact">
-            사이트 추가 및 기능 건의 &middot; <a href="mailto:chioyhappy@gmail.com?subject=%5B%EC%88%98%EB%8F%84%EA%B6%8C%20%EB%B9%8C%EB%9D%BC%20%EA%B1%B0%EB%9E%98%EB%9F%89%5D">chioyhappy@gmail.com</a>
+            사이트 추가, 기능 건의, 오류 제보 &middot; <a href="mailto:chioyhappy@gmail.com?subject=%5B%EC%88%98%EB%8F%84%EA%B6%8C%20%EB%B9%8C%EB%9D%BC%20%EA%B1%B0%EB%9E%98%EB%9F%89%5D">chioyhappy@gmail.com</a>
         </div>
         <div class="footer-contact">
-            오늘 방문자 수: <span id="visitor-today">-</span>
+            오늘 조회수: <span id="visitor-today">-</span>
         </div>
         <div class="footer-contact">
-            총 방문자 수: <span id="visitor-total">-</span>
+            누적 조회수: <span id="visitor-total">-</span>
         </div>
         <div class="footer-contact" style="color:#aaa;font-size:11px;">
-            데이터 출처: 국토교통부 연립다세대 매매 실거래가 &middot; <a href="/">부동산 사이트 모음</a> &middot; <a href="/auction/">경매 수익률 분석기</a>
+            데이터 출처: 국토교통부 연립다세대 매매 실거래가 &middot; <a href="/">부동산 사이트 모음</a> &middot; <a href="/auction/">경매 수익률 계산기</a>
         </div>
     </footer>
     <!-- GoatCounter 방문자 추적 + 사이트 전체 방문자 수 -->
     <script data-goatcounter="https://soulmeethello.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
     <script>
         (function(){
-            var base='https://soulmeethello.goatcounter.com/counter/%2F.json';
+            var base='https://soulmeethello.goatcounter.com/counter/TOTAL.json';
             var today=new Date().toISOString().slice(0,10);
             function set(id,url){ var r=new XMLHttpRequest(); r.addEventListener('load',function(){ try{ var el=document.getElementById(id); if(el) el.innerText=JSON.parse(this.responseText).count.toLocaleString(); }catch(e){} }); r.open('GET',url); r.send(); }
             setTimeout(function(){ set('visitor-total',base); set('visitor-today',base+'?start='+today); },800);
