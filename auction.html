@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>경매 수익률 분석기</title>
+    <meta name="description" content="부동산 경매 수익률·세후순익·목표 낙찰가 역산 분석기">
+    <meta property="og:title" content="경매 수익률 분석기">
+    <meta property="og:description" content="레버리지·세금 반영 순수익 분석 + 목표 낙찰가 역산">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://estate.lifetiming.kr/auction.html">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f6f8; color: #333; line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #0051d5 0%, #007AFF 100%);
+            color: #fff; padding: 44px 24px 56px; text-align: center;
+        }
+        .header h1 { font-size: 30px; font-weight: 700; margin-bottom: 8px; }
+        .header p { font-size: 14px; opacity: 0.85; }
+        .header .home-link {
+            display: inline-block; margin-top: 14px; font-size: 13px; color: #fff;
+            background: rgba(255,255,255,0.18); padding: 6px 14px; border-radius: 20px;
+            text-decoration: none; transition: background 0.2s;
+        }
+        .header .home-link:hover { background: rgba(255,255,255,0.3); }
+
+        .container { max-width: 1140px; margin: 0 auto; padding: 0 20px 64px; }
+
+        .card {
+            background: #fff; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.07);
+            padding: 22px 24px; margin-bottom: 18px;
+        }
+        .card.lift { margin-top: -32px; position: relative; z-index: 10; }
+        /* tabs */
+        .tabs { display: flex; border-bottom: 1px solid #e8eaed; }
+        .tab { flex: 1; padding: 15px 8px; text-align: center; font-size: 13.5px; font-weight: 700; color: #8a93a0; cursor: pointer; background: #fafbfc; border: none; border-bottom: 3px solid transparent; transition: all 0.2s; font-family: inherit; }
+        .tab.active { color: #007AFF; background: #fff; border-bottom-color: #007AFF; }
+        .tab:hover:not(.active) { color: #555; background: #f2f4f7; }
+        .tab-body { display: none; padding: 22px 24px; }
+        .tab-body.active { display: block; }
+        @media (max-width: 560px){ .tab { font-size: 12px; padding: 13px 4px; } }
+
+        .card-title {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 16px; font-weight: 700; color: #007AFF; margin-bottom: 18px;
+        }
+        .card-title .ico {
+            width: 26px; height: 26px; background: #007AFF; color: #fff; border-radius: 7px;
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        .subhead {
+            font-size: 12.5px; font-weight: 700; color: #888; text-transform: none;
+            margin: 16px 0 9px; padding-bottom: 5px; border-bottom: 1px dashed #e4e7eb;
+        }
+        .subhead:first-child { margin-top: 0; }
+
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px 26px; }
+        .grid.two { grid-template-columns: repeat(2, 1fr); }
+        /* compact: label LEFT of input, optional 한글 readout below input */
+        .field { display: grid; grid-template-columns: 104px 1fr; column-gap: 10px; align-items: center; }
+        .field.full { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
+        /* seg-group inline: label left, buttons right, one row */
+        .field.segfull { grid-column: 1 / -1; grid-template-columns: 96px 1fr; }
+        .field.segfull > .seg-group { grid-column: 2; grid-row: 1; }
+        .field.segfull > .seg-stack { grid-column: 2; grid-row: 1; display: flex; flex-wrap: wrap; gap: 6px 12px; }
+        .field.segfull > label { grid-row: 1; }
+        .stack { display: flex; flex-direction: column; gap: 9px; }
+        .field > label { grid-row: 1 / 3; align-self: center; font-size: 12px; font-weight: 600; color: #555; line-height: 1.2; }
+        .field.full > label { grid-row: auto; }
+        .field label .opt { display: block; font-weight: 400; color: #aaa; font-size: 10.5px; line-height: 1.25; }
+        .vdiv { width: 1px; background: #d5dae0; align-self: stretch; margin: 2px 6px; }
+        .input-wrap { position: relative; grid-column: 2; grid-row: 1; }
+        .field input {
+            width: 100%; padding: 9px 36px 9px 11px; border: 1px solid #dde1e6;
+            border-radius: 9px; font-size: 14px; font-family: inherit; outline: none;
+            transition: border-color 0.2s; text-align: right;
+        }
+        .field input:focus { border-color: #007AFF; }
+        .field input.text-left { text-align: left; padding-right: 11px; }
+        .field.full > input { width: 100%; }
+        .input-unit {
+            position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+            font-size: 12px; color: #aaa; pointer-events: none;
+        }
+        .readout { grid-column: 2; grid-row: 2; font-size: 10.5px; color: #0a8a52; text-align: right; white-space: nowrap; overflow: hidden; min-height: 0; }
+        .readout:empty { display: none; }
+
+        /* segmented control */
+        .seg-group { display: flex; flex-wrap: wrap; gap: 5px; }
+        .seg {
+            padding: 8px 11px; border: 1px solid #dde1e6; border-radius: 8px; background: #fff;
+            font-size: 12.5px; font-weight: 600; color: #666; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+        }
+        .seg:hover { border-color: #b9c2cc; }
+        .seg.active { background: #007AFF; color: #fff; border-color: #007AFF; }
+
+        .btn-row { display: flex; gap: 10px; margin-top: 22px; }
+        .btn {
+            padding: 13px 20px; border-radius: 10px; font-size: 15px; font-weight: 700;
+            cursor: pointer; border: none; transition: all 0.2s;
+        }
+        .btn-primary { background: #007AFF; color: #fff; flex: 1; }
+        .btn-primary:hover { background: #0062cc; }
+        .btn-ghost { background: #f0f2f5; color: #666; }
+        .btn-ghost:hover { background: #e4e7eb; }
+
+        /* result */
+        .result { display: none; }
+        .result.show { display: block; }
+        .settings-summary { font-size: 12px; color: #555; background: #eef5ff; border: 1px solid #dbe8ff; border-radius: 9px; padding: 8px 12px; margin-bottom: 16px; line-height: 1.5; }
+        .settings-summary b { color: #007AFF; }
+        .headline-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
+        .hl {
+            border-radius: 14px; padding: 20px; text-align: center; color: #fff;
+        }
+        .hl.main { background: linear-gradient(135deg, #0051d5 0%, #007AFF 100%); }
+        .hl.green { background: linear-gradient(135deg, #0f8a52 0%, #18a862 100%); }
+        .hl.slate { background: linear-gradient(135deg, #3a4756 0%, #586574 100%); }
+        .hl .l { font-size: 12px; opacity: 0.85; margin-bottom: 4px; }
+        .hl .v { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+        .hl .s { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+        @media (max-width: 720px){ .headline-row{ grid-template-columns:1fr; } }
+
+        /* breakdown table */
+        .bd { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .bd tr { border-bottom: 1px solid #f0f2f5; }
+        .bd td { padding: 9px 4px; }
+        .bd td.k { color: #666; }
+        .bd td.c { color: #aaa; font-size: 12px; text-align: right; white-space: nowrap; padding-right: 12px; }
+        .bd td.v { text-align: right; font-weight: 600; color: #333; white-space: nowrap; }
+        .bd tr.sec td { background: #f7f9fc; font-weight: 700; color: #007AFF; font-size: 12.5px; padding: 7px 8px; }
+        .bd tr.total td { font-weight: 800; }
+        .bd tr.total td.v { color: #0f8a52; font-size: 15px; }
+        .bd tr.neg td.v { color: #d64545; }
+        .bd td.v.pos { color: #0f8a52; }
+        .bd td.v.negv { color: #d64545; }
+        /* comparison */
+        .bd.cmp td { padding: 10px 6px; }
+        .bd.cmp td.v { text-align: right; }
+        .bd.cmp tr.best td { background: #eafaf0; }
+        .bd.cmp tr.best td.v { color: #0f8a52; }
+        .bd.cmp .stagstrat { font-size: 13.5px; color: #333; font-weight: 600; }
+        .bd.cmp .stagsub { font-size: 11px; color: #aaa; font-weight: 400; }
+        .bestpill { display:inline-block; font-size:10px; font-weight:700; color:#fff; background:#0f8a52; border-radius:9px; padding:1px 7px; margin-left:6px; vertical-align:middle; }
+        .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        /* guide */
+        .guide { margin-top: 12px; border: 1px solid #e4e7eb; border-radius: 10px; background: #fafbfc; }
+        .guide summary { cursor: pointer; padding: 11px 14px; font-size: 13px; font-weight: 600; color: #007AFF; list-style: none; }
+        .guide summary::-webkit-details-marker { display: none; }
+        .guide summary::before { content: '▸ '; }
+        .guide[open] summary::before { content: '▾ '; }
+        .guide[open] summary { border-bottom: 1px solid #eef1f5; }
+        .guide-body { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px; }
+        .guide-h { font-size: 12.5px; font-weight: 700; margin-bottom: 6px; }
+        .guide-h span { display: block; font-size: 10.5px; font-weight: 400; color: #aaa; margin-top: 1px; }
+        .guide-h.cap { color: #0f8a52; }
+        .guide-h.rev { color: #c2710c; }
+        .guide ul { margin: 0; padding-left: 16px; }
+        .guide li { font-size: 12px; color: #555; margin: 2px 0; }
+        @media (max-width: 640px){ .guide-body { grid-template-columns: 1fr; } }
+
+        .note {
+            margin-top: 16px; font-size: 12.5px; color: #888; background: #f7f9fc;
+            border-radius: 10px; padding: 12px 14px;
+        }
+        .note b { color: #007AFF; }
+        .tag {
+            display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px;
+            border-radius: 10px; background: #eef5ff; color: #007AFF; margin-left: 6px;
+        }
+        .tag.warn { background: #fff1e6; color: #c2710c; }
+
+        /* samples + links */
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+        .sample-card {
+            background: #fff; border: 1px solid #e8eaed; border-radius: 14px; padding: 18px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .sample-card:hover { border-color: #007AFF; box-shadow: 0 6px 18px rgba(0,122,255,0.15); transform: translateY(-2px); }
+        .sc-case { font-size: 11px; color: #aaa; }
+        .sc-name { font-size: 15px; font-weight: 700; color: #333; margin: 2px 0 10px; }
+        .sc-rows { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }
+        .sc-row { display: flex; justify-content: space-between; }
+        .sc-row .k { color: #999; } .sc-row .vv { color: #444; font-weight: 600; }
+        .sc-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+        .badge { font-size: 10.5px; font-weight: 600; padding: 3px 8px; border-radius: 11px; background: #eef5ff; color: #007AFF; }
+        .badge.green { background: #e7f6ee; color: #0f8a52; }
+        .sc-load { margin-top: 12px; text-align: center; font-size: 12.5px; font-weight: 600; color: #007AFF; padding-top: 10px; border-top: 1px dashed #eef1f5; }
+
+        .qlinks { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 11px; }
+        .qlink { background: #fff; border: 1px solid #e8eaed; border-radius: 12px; padding: 13px 15px; text-decoration: none; color: inherit; transition: all 0.2s; display: flex; flex-direction: column; gap: 2px; }
+        .qlink:hover { border-color: #007AFF; box-shadow: 0 4px 14px rgba(0,122,255,0.12); transform: translateY(-2px); }
+        .qlink .n { font-size: 13.5px; font-weight: 600; color: #007AFF; }
+        .qlink .d { font-size: 11.5px; color: #888; }
+
+        .footer { text-align: center; padding: 28px 24px; color: #999; font-size: 12.5px; border-top: 1px solid #e8eaed; margin-top: 36px; }
+
+        @media (max-width: 720px){ .grid, .grid.two { grid-template-columns: 1fr; } .container{ padding:0 14px 48px; } }
+
+        /* ===== 다크모드 ===== */
+        .theme-toggle {
+            position: fixed; top: 12px; right: 14px; z-index: 200;
+            width: 40px; height: 40px; border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.18);
+            color: #fff; font-size: 18px; cursor: pointer; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px); transition: all 0.2s;
+        }
+        .theme-toggle:hover { background: rgba(255,255,255,0.32); }
+
+        [data-theme="dark"] body { background: #15171c; color: #e4e6eb; }
+        [data-theme="dark"] .theme-toggle { background: #262a32; border-color: #3a3f4a; color: #ffd479; }
+        [data-theme="dark"] .card { background: #1e2128; box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
+        [data-theme="dark"] .tabs { border-bottom-color: #2a2e37; }
+        [data-theme="dark"] .tab { background: #191c22; color: #8a93a0; }
+        [data-theme="dark"] .tab.active { background: #1e2128; color: #4f9dff; border-bottom-color: #4f9dff; }
+        [data-theme="dark"] .tab:hover:not(.active) { background: #222630; color: #c4c8d0; }
+        [data-theme="dark"] .card-title { color: #4f9dff; }
+        [data-theme="dark"] .subhead { color: #9aa0ab; border-bottom-color: #2e333d; }
+        [data-theme="dark"] .field > label { color: #c4c8d0; }
+        [data-theme="dark"] .field label .opt { color: #7c828d; }
+        [data-theme="dark"] .field input { background: #262a32; border-color: #363b45; color: #e4e6eb; }
+        [data-theme="dark"] .field input:focus { border-color: #4f9dff; }
+        [data-theme="dark"] .field input::placeholder { color: #6b7180; }
+        [data-theme="dark"] .input-unit { color: #7c828d; }
+        [data-theme="dark"] .readout { color: #3fcf86; }
+        [data-theme="dark"] .seg { background: #262a32; border-color: #363b45; color: #c4c8d0; }
+        [data-theme="dark"] .seg:hover { border-color: #4a515d; }
+        [data-theme="dark"] .seg.active { background: #007AFF; color: #fff; border-color: #007AFF; }
+        [data-theme="dark"] .btn-ghost { background: #2a2e37; color: #c4c8d0; }
+        [data-theme="dark"] .btn-ghost:hover { background: #333947; }
+        [data-theme="dark"] .vdiv { background: #363b45; }
+        [data-theme="dark"] .bd tr { border-bottom-color: #2a2e37; }
+        [data-theme="dark"] .bd td.k { color: #aab0bb; }
+        [data-theme="dark"] .bd td.c { color: #7c828d; }
+        [data-theme="dark"] .bd td.v { color: #e4e6eb; }
+        [data-theme="dark"] .bd tr.sec td { background: #222a36; color: #4f9dff; }
+        [data-theme="dark"] .bd tr.total td.v, [data-theme="dark"] .bd td.v.pos { color: #3fcf86; }
+        [data-theme="dark"] .bd tr.neg td.v, [data-theme="dark"] .bd td.v.negv { color: #ff6b6b; }
+        [data-theme="dark"] .bd.cmp tr.best td { background: #14342a; }
+        [data-theme="dark"] .bd.cmp tr.best td.v { color: #3fcf86; }
+        [data-theme="dark"] .note { background: #1b1f27; color: #9aa0ab; }
+        [data-theme="dark"] .note b { color: #4f9dff; }
+        [data-theme="dark"] .settings-summary { background: #18233a; border-color: #25406e; color: #aab0bb; }
+        [data-theme="dark"] .settings-summary b { color: #6db3ff; }
+        [data-theme="dark"] .guide { background: #1b1f27; border-color: #2a2e37; }
+        [data-theme="dark"] .guide summary { color: #4f9dff; }
+        [data-theme="dark"] .guide[open] summary { border-bottom-color: #2a2e37; }
+        [data-theme="dark"] .guide li { color: #aab0bb; }
+        [data-theme="dark"] .sample-card { background: #1e2128; border-color: #2a2e37; }
+        [data-theme="dark"] .sample-card:hover { border-color: #4f9dff; }
+        [data-theme="dark"] .sc-name { color: #e4e6eb; }
+        [data-theme="dark"] .sc-row .k { color: #8a909b; }
+        [data-theme="dark"] .sc-row .vv { color: #c4c8d0; }
+        [data-theme="dark"] .qlink { background: #1e2128; border-color: #2a2e37; }
+        [data-theme="dark"] .qlink .d { color: #9aa0ab; }
+        [data-theme="dark"] .footer { color: #8b909b; border-top-color: #2a2e37; }
+        [data-theme="dark"] #mk_readout { color: #3fcf86; }
+        [data-theme="dark"] .tag { background: #1e2a3d; color: #4f9dff; }
+        [data-theme="dark"] .tag.warn { background: #3a2a17; color: #e0a258; }
+    </style>
+    <script>(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle" title="다크모드 전환" aria-label="다크모드 전환">🌙</button>
+    <div class="header">
+        <h1>경매 수익률 분석기</h1>
+        <p>레버리지·세금 반영 순수익 분석 + 목표 낙찰가 역산</p>
+        <a class="home-link" href="index.html">← 부동산 사이트 모음</a>
+        <a class="home-link" href="ranking.html" style="margin-left:6px;">🏘️ 단타 지역 랭킹</a>
+        <button type="button" class="home-link" id="shareBtn" style="border:none;cursor:pointer;font-family:inherit;margin-left:6px;">🔗 공유 링크 복사</button>
+    </div>
+
+    <div class="container">
+
+        <!-- ===== 입력 ===== -->
+        <div class="card lift" style="padding:0; overflow:hidden;">
+            <div class="tabs">
+                <button class="tab active" data-tab="analyze">📊 수익률 분석</button>
+                <button class="tab" data-tab="reverse">🎯 목표 낙찰가 역산</button>
+                <button class="tab" data-tab="sim">🎲 입찰가 시뮬레이션</button>
+            </div>
+            <div class="tab-body active" id="tab-analyze">
+            <div class="subhead" style="margin-top:0">물건 기본 정보</div>
+            <div class="grid">
+                <div class="field full">
+                    <label>사건번호 / 메모 <span class="opt">(선택)</span></label>
+                    <input type="text" id="i_case" class="text-left" placeholder="2022타경00000 화곡동 빌라">
+                </div>
+                <div class="field">
+                    <label>감정가</label>
+                    <div class="input-wrap"><input type="text" id="i_appr" inputmode="numeric" placeholder="307,000,000"><span class="input-unit">원</span></div>
+                    <div class="readout" id="i_appr_ro"></div>
+                </div>
+                <div class="field">
+                    <label>낙찰가(매수가)</label>
+                    <div class="input-wrap"><input type="text" id="i_bid" inputmode="numeric" placeholder="199,550,000"><span class="input-unit">원</span></div>
+                    <div class="readout" id="i_bid_ro"></div>
+                </div>
+                <div class="field">
+                    <label>매도가(예상 시세)</label>
+                    <div class="input-wrap"><input type="text" id="i_sell" inputmode="numeric" placeholder="260,000,000"><span class="input-unit">원</span></div>
+                    <div class="readout" id="i_sell_ro"></div>
+                </div>
+            </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="analyze()">분석하기</button>
+                    <button class="btn btn-ghost" onclick="resetForm()">초기화</button>
+                </div>
+                <p style="font-size:12px;color:#888;margin-top:10px;text-align:center;">⚙️ 분석 전 <a href="#common" style="color:#007AFF;font-weight:600;text-decoration:none;">대출·세금 등 공통 설정</a>을 한 번 확인하세요 (기본값으로 계산됩니다)</p>
+                <div class="result" id="result" style="margin-top:24px;"></div>
+            </div><!-- /tab-analyze -->
+
+            <div class="tab-body" id="tab-reverse">
+                <p style="font-size:13px; color:#888; margin:0 0 16px;">목표 순수익을 남기기 위한 <b>명의별 최대 낙찰가</b>를 자동 비교합니다. 아래 <b>공통 설정</b>(대출·부대비용·세금)이 반영됩니다.</p>
+                <div class="grid">
+                    <div class="field">
+                        <label>매도가(예상 시세)</label>
+                        <div class="input-wrap"><input type="text" id="rc_sell" inputmode="numeric" placeholder="260,000,000"><span class="input-unit">원</span></div>
+                        <div class="readout" id="rc_sell_ro"></div>
+                    </div>
+                    <div class="field">
+                        <label>목표 순수익(세후)</label>
+                        <div class="input-wrap"><input type="text" id="rc_target" inputmode="numeric" value="50,000,000"><span class="input-unit">원</span></div>
+                        <div class="readout" id="rc_target_ro"></div>
+                    </div>
+                    <div class="field">
+                        <label>감정가 <span class="opt">(선택 · 낙찰가율)</span></label>
+                        <div class="input-wrap"><input type="text" id="rc_appr" inputmode="numeric" placeholder="307,000,000"><span class="input-unit">원</span></div>
+                        <div class="readout" id="rc_appr_ro"></div>
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="reverse()">목표 낙찰가 계산</button>
+                </div>
+                <div class="result" id="rresult" style="margin-top:22px;"></div>
+            </div><!-- /tab-reverse -->
+
+            <div class="tab-body" id="tab-sim">
+                <p style="font-size:13px; color:#888; margin:0 0 16px;">낙찰가율을 단계별로 바꿔가며 <b>순수익·수익률 변화</b>를 봅니다. "얼마까지 써도 되나"를 판단하세요. 아래 <b>공통 설정</b>이 반영됩니다.</p>
+                <div class="grid">
+                    <div class="field">
+                        <label>감정가</label>
+                        <div class="input-wrap"><input type="text" id="sim_appr" inputmode="numeric" placeholder="307,000,000"><span class="input-unit">원</span></div>
+                        <div class="readout" id="sim_appr_ro"></div>
+                    </div>
+                    <div class="field">
+                        <label>매도가(예상 시세)</label>
+                        <div class="input-wrap"><input type="text" id="sim_sell" inputmode="numeric" placeholder="260,000,000"><span class="input-unit">원</span></div>
+                        <div class="readout" id="sim_sell_ro"></div>
+                    </div>
+                    <div class="field">
+                        <label>낙찰가율 시작</label>
+                        <div class="input-wrap"><input type="text" id="sim_from" inputmode="decimal" value="60"><span class="input-unit">%</span></div>
+                    </div>
+                    <div class="field">
+                        <label>낙찰가율 끝</label>
+                        <div class="input-wrap"><input type="text" id="sim_to" inputmode="decimal" value="90"><span class="input-unit">%</span></div>
+                    </div>
+                    <div class="field">
+                        <label>단계</label>
+                        <div class="input-wrap"><input type="text" id="sim_step" inputmode="decimal" value="5"><span class="input-unit">%p</span></div>
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="simulate()">시뮬레이션</button>
+                </div>
+                <div class="result" id="sresult" style="margin-top:22px;"></div>
+            </div><!-- /tab-sim -->
+        </div><!-- /tabs card -->
+
+        <div class="card" id="common" style="scroll-margin-top:12px;">
+            <div class="card-title"><span class="ico">⚙️</span> 공통 설정 <span style="font-size:12px;font-weight:400;color:#aaa;">— 모든 탭에 적용 (대출·부대비용·세금)</span></div>
+
+            <div class="subhead" style="margin-top:0">대출 (레버리지)</div>
+            <div class="grid">
+                <div class="field">
+                    <label>경락자금대출 비율</label>
+                    <div class="input-wrap"><input type="text" id="l_ratio" inputmode="decimal" value="70"><span class="input-unit">%</span></div>
+                </div>
+                <div class="field">
+                    <label>대출 금리(연)</label>
+                    <div class="input-wrap"><input type="text" id="l_rate" inputmode="decimal" value="6"><span class="input-unit">%</span></div>
+                </div>
+                <div class="field">
+                    <label>보유 기간(이자)</label>
+                    <div class="input-wrap"><input type="text" id="l_months" inputmode="decimal" value="3"><span class="input-unit">개월</span></div>
+                </div>
+                <div class="field">
+                    <label>중도상환수수료</label>
+                    <div class="input-wrap"><input type="text" id="l_prepay" inputmode="decimal" value="1"><span class="input-unit">%</span></div>
+                </div>
+            </div>
+
+            <div class="subhead">부대비용 (항목별)</div>
+            <div class="grid">
+                <div class="field">
+                    <label>법무비 <span class="opt">(등기·셀프 등)</span></label>
+                    <div class="input-wrap"><input type="text" id="c_legal" inputmode="numeric" value="600,000"><span class="input-unit">원</span></div>
+                    <div class="readout" id="c_legal_ro"></div>
+                </div>
+                <div class="field">
+                    <label>중개비율 <span class="opt">(매도가 기준)</span></label>
+                    <div class="input-wrap"><input type="text" id="c_brokerrate" inputmode="decimal" value="0.4"><span class="input-unit">%</span></div>
+                </div>
+                <div class="field">
+                    <label>인테리어 <span class="opt">(자본적·필요경비 인정)</span></label>
+                    <div class="input-wrap"><input type="text" id="c_interior_cap" inputmode="numeric" value="0"><span class="input-unit">원</span></div>
+                    <div class="readout" id="c_interior_cap_ro"></div>
+                </div>
+                <div class="field">
+                    <label>수선·도배 <span class="opt">(수익적·개인양도 불인정)</span></label>
+                    <div class="input-wrap"><input type="text" id="c_interior_rev" inputmode="numeric" value="0"><span class="input-unit">원</span></div>
+                    <div class="readout" id="c_interior_rev_ro"></div>
+                </div>
+                <div class="field">
+                    <label>입주청소</label>
+                    <div class="input-wrap"><input type="text" id="c_clean" inputmode="numeric" value="500,000"><span class="input-unit">원</span></div>
+                </div>
+                <div class="field">
+                    <label>관리비(소유권 이후)</label>
+                    <div class="input-wrap"><input type="text" id="c_mgmt" inputmode="numeric" value="500,000"><span class="input-unit">원</span></div>
+                </div>
+                <div class="field">
+                    <label>명도비 <span class="opt">(체납관리비 등)</span></label>
+                    <div class="input-wrap"><input type="text" id="c_evict" inputmode="numeric" value="1,000,000"><span class="input-unit">원</span></div>
+                </div>
+            </div>
+
+            <details class="guide">
+                <summary>📘 자본적 vs 수익적 지출 구분 가이드 (인테리어 입력 도움말)</summary>
+                <div class="guide-body">
+                    <div class="guide-col">
+                        <div class="guide-h cap">자본적 지출 <span>가치↑·내용연수 연장 · 양도 시 필요경비 인정(취득원가 가산)</span></div>
+                        <ul>
+                            <li>리모델링으로 신축급 업그레이드</li>
+                            <li>발코니 확장 공사 · 방 확장 공사</li>
+                            <li>증축 · 확장 · 옥상 증축</li>
+                            <li>섀시(샷시) 교체 공사</li>
+                            <li>엘리베이터 신규 설치</li>
+                            <li>주차장 증설 · 외벽 리모델링</li>
+                            <li>냉난방 시설 설치(일반 에어컨 제외) · 보일러 교체 <span style="color:#aaa">(단순 수리는 수익적)</span></li>
+                            <li>시스템(매립) 에어컨 설치</li>
+                            <li>용도 변경 · 상가 배관 대규모 개조</li>
+                        </ul>
+                    </div>
+                    <div class="guide-col">
+                        <div class="guide-h rev">수익적 지출 <span>개인 양도세 공제 X · 법인 즉시 비용 O</span></div>
+                        <ul>
+                            <li>도배·장판·마루 시공</li>
+                            <li>싱크대·붙박이장·신발장 교체</li>
+                            <li>화장실 타일·변기·욕조 교체 <span style="color:#aaa">(원상회복 성격)</span></li>
+                            <li>도색·옥상방수·조명 교체</li>
+                        </ul>
+                    </div>
+                </div>
+            </details>
+
+            <div class="subhead">세금 — 명의별 자동 비교</div>
+            <div class="stack">
+                <div class="field">
+                    <label>기존 소득 <span class="opt">(선택)</span></label>
+                    <div class="input-wrap"><input type="text" id="t_other" inputmode="numeric" value="0"><span class="input-unit">원</span></div>
+                    <div class="readout" id="t_other_ro"></div>
+                </div>
+                <div class="field segfull">
+                    <label>물건 유형</label>
+                    <div class="seg-group" data-state="prop">
+                        <div class="seg active" data-val="house">주택</div>
+                        <div class="seg" data-val="nonhouse">비주택(상가·근생 등)</div>
+                    </div>
+                </div>
+                <div class="field segfull">
+                    <label>보유 주택수 <span class="opt">(취득세 · 취득시점)</span></label>
+                    <div class="seg-group" data-state="houses">
+                        <div class="seg active" data-val="1">1주택(1~3%)</div>
+                        <div class="seg" data-val="2">2주택</div>
+                        <div class="seg" data-val="3plus">3주택+</div>
+                    </div>
+                </div>
+                <div class="field segfull">
+                    <label>조정대상지역 <span class="opt">(취득세·중과 기준)</span></label>
+                    <div class="seg-group" data-state="adj">
+                        <div class="seg active" data-val="adj">조정대상지역</div>
+                        <div class="seg" data-val="non">비조정지역</div>
+                    </div>
+                </div>
+                <div class="field segfull">
+                    <label>전용면적 <span class="opt">(농특세·부가세)</span></label>
+                    <div class="seg-group" data-state="area84">
+                        <div class="seg active" data-val="le">84㎡ 이하</div>
+                        <div class="seg" data-val="gt">84㎡ 초과</div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>건물분 비율 <span class="opt">(84㎡초과·비주택만)</span></label>
+                    <div class="input-wrap"><input type="text" id="b_ratio" inputmode="decimal" value="40"><span class="input-unit">%</span></div>
+                </div>
+                <div class="field segfull">
+                    <label>소재지·공시가 <span class="opt">(중과배제)</span></label>
+                    <div class="seg-stack">
+                        <div class="seg-group" data-state="metro">
+                            <div class="seg active" data-val="metro">수도권(서울·경기·인천)</div>
+                            <div class="seg" data-val="local">비수도권</div>
+                        </div>
+                        <span class="vdiv"></span>
+                        <div class="seg-group" data-state="pub">
+                            <div class="seg" data-val="under" id="pub_under">1억 이하</div>
+                            <div class="seg active" data-val="over" id="pub_over">1억 초과</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p style="font-size:12px;color:#888;margin-top:8px;">세금은 <b>개인 양도세 · 매매사업자(1주택/다주택) · 법인 · 1주택 비과세</b>를 자동 비교합니다. <b>취득세</b>는 명의·주택수·<b>조정대상지역 여부</b>로 자동 계산(법인 주택 12% / 비주택 4.6% / 개인 다주택 중과는 조정지역만). <b>매매사업자(다주택자)</b>는 비교과세 <b>MAX(종합소득세, 단기 양도세상당)</b>로 계산하며, 주택수는 <b>매도 시점</b> 기준입니다.</p>
+        </div>
+
+        <!-- ===== 시세조사 (딥링크) ===== -->
+        <div class="card">
+            <div class="card-title"><span class="ico">🔎</span> 매도가 시세조사 <span style="font-size:12px;font-weight:400;color:#aaa;">— 주소·면적 입력 → 그 동네 빌라 검색 링크 자동 생성</span></div>
+            <div class="grid">
+                <div class="field full">
+                    <label>물건 주소 <span class="opt">(지번 또는 도로명 · 동 이름 포함)</span></label>
+                    <input type="text" id="mk_addr" class="text-left" placeholder="서울 강서구 화곡동 123-45">
+                </div>
+                <div class="field">
+                    <label>전용면적</label>
+                    <div class="input-wrap"><input type="text" id="mk_area" inputmode="decimal" placeholder="59"><span class="input-unit">㎡</span></div>
+                </div>
+                <div class="field">
+                    <label>면적 허용오차 <span class="opt">(±)</span></label>
+                    <div class="input-wrap"><input type="text" id="mk_tol" inputmode="decimal" value="2"><span class="input-unit">㎡</span></div>
+                </div>
+            </div>
+            <div id="mk_readout" style="font-size:12.5px;color:#0a8a52;margin:6px 2px 0;min-height:18px;"></div>
+            <div class="qlinks" id="mk_links" style="margin-top:14px;"></div>
+            <div class="note" style="margin-top:14px;">
+                <b>사용법</b> — 지도(네이버·카카오)로 위치·로드뷰를 확인하고, 위 <b>유사 면적(평형)</b>을 기준으로 매물을 살펴보세요.<br>
+                <span style="color:#c2710c">⚠️ 네이버 부동산은 좌표·단지명 기반이라 "동네 빌라 + 면적 필터" 목록은 URL로 못 엽니다(아파트는 단지명 검색만 가능). 통합검색은 매물이 있을 때만 노출됩니다.</span><br>
+                <span style="color:#aaa">빌라의 <b>면적별 최저·중위 시세</b>는 다음 단계(공공 실거래가 API)에서 사이트 안에 직접 표시할 예정입니다. 호가 최저가는 급매·하자일 수 있으니 실거래 중위값과 함께 보세요.</span>
+            </div>
+        </div>
+
+        <!-- ===== 샘플 ===== -->
+        <div class="card-title" style="margin:34px 0 14px; font-size:18px;"><span class="ico">⭐</span> 타겟 샘플 (클릭 → 자동 입력·분석)</div>
+        <div class="cards-grid" id="sampleGrid"></div>
+
+        <!-- ===== 링크 ===== -->
+        <div class="card-title" style="margin:34px 0 14px; font-size:18px;"><span class="ico">🔗</span> 물건 조사 바로가기</div>
+        <div class="qlinks">
+            <a class="qlink" href="https://www.courtauction.go.kr/pgj/index.on" target="_blank" rel="noopener"><span class="n">대법원 경매정보</span><span class="d">경매 물건 검색</span></a>
+            <a class="qlink" href="https://www.hauction.co.kr/" target="_blank" rel="noopener"><span class="n">행크옥션</span><span class="d">권리분석·빌라시세</span></a>
+            <a class="qlink" href="https://www.onbid.co.kr/op/dsa/main/main.do" target="_blank" rel="noopener"><span class="n">온비드</span><span class="d">공매·신탁공매</span></a>
+            <a class="qlink" href="https://rt.molit.go.kr/" target="_blank" rel="noopener"><span class="n">실거래가공개시스템</span><span class="d">시세 원본</span></a>
+            <a class="qlink" href="https://www.disco.re/" target="_blank" rel="noopener"><span class="n">디스코</span><span class="d">실거래가·시세</span></a>
+            <a class="qlink" href="https://www.iros.go.kr/" target="_blank" rel="noopener"><span class="n">인터넷등기소</span><span class="d">등기부등본</span></a>
+            <a class="qlink" href="https://xn--989a00af8jnslv3dba.com/" target="_blank" rel="noopener"><span class="n">부동산 계산기</span><span class="d">취득세·양도세</span></a>
+            <a class="qlink" href="ranking.html"><span class="n">단타 지역 랭킹 →</span><span class="d">수도권 빌라 실거래 분석</span></a>
+            <a class="qlink" href="index.html"><span class="n">부동산 사이트 모음 →</span><span class="d">전체 44개</span></a>
+        </div>
+    </div>
+
+    <footer class="footer">
+        경매 수익률 분석기 · 레버리지·세금 반영 순수익 분석<br>
+        ※ 세금은 참고용 추정치입니다(2026.6 기준). 조정대상지역 지정·양도세 한시중과배제·비교과세·감면 등은 정책에 따라 자주 바뀌므로 실제 적용은 세무 전문가와 확인하세요.
+    </footer>
+
+    <script>
+        // ===== state =====
+        const state = { prop:'house', houses:'1', metro:'metro', pub:'over', area84:'le', adj:'adj' };
+
+        // 명의/전략 시나리오
+        const SCENARIOS = [
+            {key:'p1',  name:'개인 양도세',   sub:'1년 미만(단기)', entity:'personal', holding:'lt1'},
+            {key:'p2',  name:'개인 양도세',   sub:'1~2년',          entity:'personal', holding:'lt2'},
+            {key:'p3',  name:'개인 양도세',   sub:'2년 이상(기본)', entity:'personal', holding:'gte2'},
+            {key:'biz1',name:'매매사업자(1주택자)', sub:'종합소득세',          entity:'business', holding:'lt1', bizMulti:false},
+            {key:'bizN',name:'매매사업자(다주택자)', sub:'비교과세·매도시점',   entity:'business', holding:'lt1', bizMulti:true},
+            {key:'corp',name:'법인',          sub:'법인세',         entity:'corp',     holding:'lt1'},
+            {key:'ex',  name:'1주택 비과세',  sub:'2년 보유',       entity:'personal', holding:'exempt', houseOnly:true},
+        ];
+
+        // ===== helpers =====
+        const $ = id => document.getElementById(id);
+        const fmt = n => Math.round(n).toLocaleString('ko-KR');
+        const parseNum = s => { const v = parseFloat(String(s||'').replace(/[^0-9.]/g,'')); return isNaN(v)?0:v; };
+        function toKorean(won){
+            won = Math.round(won); if (won===0) return '';
+            const neg = won<0; won=Math.abs(won);
+            const eok=Math.floor(won/1e8), man=Math.floor((won%1e8)/1e4), rest=won%1e4;
+            let o=''; if(eok)o+=eok+'억 '; if(man)o+=man.toLocaleString('ko-KR')+'만 '; if(!eok&&!man&&rest)o+=rest.toLocaleString('ko-KR');
+            return (neg?'-':'')+o.trim();
+        }
+        function attachMoney(id){
+            const el=$(id), ro=$(id+'_ro');
+            el.addEventListener('input',()=>{
+                const raw=el.value.replace(/[^0-9]/g,'');
+                el.value = raw? parseInt(raw,10).toLocaleString('ko-KR'):'';
+                if(ro) ro.textContent = raw? toKorean(parseInt(raw,10)) : '';
+            });
+        }
+        ['i_appr','i_bid','i_sell','c_legal','c_interior_cap','c_interior_rev','c_clean','c_mgmt','c_evict','t_other','rc_sell','rc_target','rc_appr','sim_appr','sim_sell'].forEach(attachMoney);
+
+        // ===== tabs =====
+        document.querySelectorAll('.tab').forEach(t=>{
+            t.addEventListener('click',()=>{
+                document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+                document.querySelectorAll('.tab-body').forEach(x=>x.classList.remove('active'));
+                t.classList.add('active');
+                $('tab-'+t.dataset.tab).classList.add('active');
+            });
+        });
+        // initial readouts for prefilled
+        ['rc_target'].forEach(id=>{ $(id+'_ro').textContent = toKorean(parseNum($(id).value)); });
+
+        // ===== segmented controls =====
+        document.querySelectorAll('.seg-group').forEach(g=>{
+            g.addEventListener('click', e=>{
+                const b = e.target.closest('.seg'); if(!b) return;
+                g.querySelectorAll('.seg').forEach(x=>x.classList.remove('active'));
+                b.classList.add('active');
+                state[g.dataset.state] = b.dataset.val;
+                updatePubLabels();
+                updateBuildingRatioState();
+            });
+        });
+        // 소재지에 따라 공시가 기준(수도권 1억 / 비수도권 2억) 라벨 갱신
+        function updatePubLabels(){
+            const thr = state.metro==='local' ? '2억' : '1억';
+            $('pub_under').textContent = thr+' 이하';
+            $('pub_over').textContent = thr+' 초과';
+        }
+        // 건물분 비율: 비주택 또는 84㎡ 초과일 때만 활성화 → 그 외는 0% 자동(이전 값 기억)
+        function updateBuildingRatioState(){
+            const active = (state.prop==='nonhouse') || (state.area84==='gt');
+            const el=$('b_ratio'); const fld=el.closest('.field');
+            if(!active){
+                if(el.value!=='0') el.dataset.last=el.value;
+                el.value='0'; el.disabled=true;
+                if(fld) fld.style.opacity='0.45';
+            } else {
+                if(el.disabled) el.value = el.dataset.last || '40';
+                el.disabled=false;
+                if(fld) fld.style.opacity='1';
+            }
+        }
+        updatePubLabels();
+        updateBuildingRatioState();
+
+        // ===== tax brackets =====
+        const INCOME = [[14000000,.06,0],[50000000,.15,1260000],[88000000,.24,5760000],[150000000,.35,15440000],[300000000,.38,19940000],[500000000,.40,25940000],[1000000000,.42,35940000],[Infinity,.45,65940000]];
+        const CORP = [[200000000,.09,0],[20000000000,.19,20000000],[300000000000,.21,420000000],[Infinity,.24,9420000000]];
+        function prog(base, table){ if(base<=0) return 0; for(const [cap,rate,ded] of table){ if(base<=cap) return base*rate-ded; } return 0; }
+
+        // returns {tax, label} given 과세표준
+        function calcTax(taxBase, s){
+            if(taxBase<=0) return {tax:0,label:'과세표준 0'};
+            if(s.holding==='exempt' && s.entity!=='corp') return {tax:0,label:'1세대1주택 2년 비과세'};
+            const other = s.other||0;
+            if(s.entity==='personal'){
+                let r=null;
+                if(s.prop==='house') r = s.holding==='lt1'?.70 : s.holding==='lt2'?.60 : null;
+                else r = s.holding==='lt1'?.50 : s.holding==='lt2'?.40 : null;
+                if(r===null){ const t=prog(taxBase,INCOME); const eff=taxBase>0?t/taxBase:0; return {tax:t, label:`양도세 기본세율 ${(eff*100).toFixed(1)}%`}; }
+                return {tax:taxBase*r, label:`양도세 단기 ${r*100}%`};
+            }
+            if(s.entity==='business'){
+                const biz = prog(other+taxBase,INCOME)-prog(other,INCOME);
+                const eff = taxBase>0 ? biz/taxBase : 0;
+                return {tax:biz, label:`종합소득세 ${(eff*100).toFixed(1)}%`};
+            }
+            if(s.entity==='corp'){
+                const base = prog(other+taxBase,CORP)-prog(other,CORP);
+                const addl = s.prop==='house' ? taxBase*0.20 : 0;
+                const tot = base+addl; const eff = taxBase>0 ? tot/taxBase : 0;
+                return {tax:tot, label:`법인세 ${(eff*100).toFixed(1)}%`+(addl>0?'(+주택20%)':'')};
+            }
+            // flat
+            return {tax:taxBase*(s.flatRate||0), label:`직접세율 ${((s.flatRate||0)*100).toFixed(0)}%`};
+        }
+
+        // ===== 취득세율 (명의·물건유형·주택수·전용85㎡·중과배제) =====
+        // heavyExempt: 공시가 중과배제 대상(수도권 1억↓ / 비수도권 2억↓)
+        function acqRate(entity, prop, price, over85, houses, heavyExempt, adj){
+            if(prop!=='house') return 0.046;                       // 비주택 4.6%
+            // 1주택 일반세율: 취득가 1~3% + 지방교육세(취득세×10%) + 농특세(85초과 0.2%)
+            const basic = ()=>{
+                let b = price<=600000000 ? 0.01
+                      : price<=900000000 ? 0.01 + (price-600000000)/300000000*0.02
+                      : 0.03;
+                return b + b*0.10 + (over85?0.002:0);
+            };
+            if(heavyExempt) return basic();                        // 법인·다주택도 중과배제 → 기본세율
+            if(entity==='corp') return over85 ? 0.134 : 0.124;     // 법인 주택 12% 중과(조정 무관)
+            // 개인 다주택 취득세 중과는 '조정대상지역'에서만 적용
+            if(!adj){
+                if(houses==='3plus') return over85 ? 0.090 : 0.084; // 비조정 3주택+ 8%
+                return basic();                                     // 비조정 1·2주택 일반세율
+            }
+            if(houses==='2')    return over85 ? 0.090 : 0.084;     // 조정 2주택 8% 중과
+            if(houses==='3plus')return over85 ? 0.134 : 0.124;     // 조정 3주택+ 12% 중과
+            return basic();
+        }
+
+        // ===== 세금 무관 공통 비용 (취득세 제외) =====
+        function computeBase(bid, sell){
+            const ratio = parseNum($('l_ratio').value)/100;
+            const rate = parseNum($('l_rate').value)/100;
+            const months = parseNum($('l_months').value);
+            const prepay = parseNum($('l_prepay').value)/100;
+            const brokerRate = parseNum($('c_brokerrate').value)/100;
+            const legal = parseNum($('c_legal').value);
+            const interiorCap = parseNum($('c_interior_cap').value);
+            const interiorRev = parseNum($('c_interior_rev').value);
+            const clean = parseNum($('c_clean').value);
+            const mgmt = parseNum($('c_mgmt').value);
+            const evict = parseNum($('c_evict').value);
+
+            const loan = bid*ratio;
+            const broker = sell*brokerRate;
+            const interest = loan*rate*(months/12);
+            const prepayFee = loan*prepay;
+            const otherCost = broker+legal+interiorCap+interiorRev+clean+mgmt+interest+prepayFee+evict;
+            const equity = bid - loan;
+            return { ratio,rate,months,prepay,brokerRate,legal,interiorCap,interiorRev,clean,mgmt,evict,
+                loan,broker,interest,prepayFee,otherCost,equity };
+        }
+
+        // 시나리오(명의)별 — 취득세·시세차익·세금·순수익 전부 계산
+        function computeScenario(appr, bid, sell, sc, prop, houses, over85, other, heavyExempt, buildingRatio, adj){
+            const base = computeBase(bid, sell);
+            const ar = acqRate(sc.entity, prop, bid, over85, houses, heavyExempt, adj);
+            const acq = bid*ar;
+            const costTotal = base.otherCost + acq;
+            const gross = sell - bid - costTotal;                  // 실제 세전 차익(전 비용 반영)
+            // 개인 양도세 필요경비 불인정 항목 → 과세표준에 가산
+            // (수익적지출 수선·도배 + 대출이자·중도상환수수료·보유중 관리비·입주청소·명도비)
+            // 인정 필요경비: 취득세·법무비·중개비·자본적지출(인테리어) 만 차감
+            const personalTransfer = (sc.entity==='personal' && sc.holding!=='exempt');
+            const nonDeduct = personalTransfer
+                ? (base.interiorRev + base.interest + base.prepayFee + base.clean + base.mgmt + base.evict)
+                : 0;
+            const deduction = personalTransfer ? 2500000 : 0;
+            const taxBase = Math.max(0, gross + nonDeduct - deduction);
+
+            let tax, label;
+            if(sc.entity==='business' && sc.bizMulti){
+                // 매매사업자(다주택자) 비교과세 = MAX(종합소득세, 단기 양도세 상당액)
+                // 양도세 상당액은 양도세 필요경비 룰(불인정 항목 가산)로 과세표준 산정
+                const bizBase = Math.max(0, gross);
+                const bizTax = prog(other+bizBase, INCOME) - prog(other, INCOME);
+                const transferBase = Math.max(0, gross + (base.interiorRev + base.interest + base.prepayFee + base.clean + base.mgmt + base.evict) - 2500000);
+                const shortRate = (prop==='house') ? 0.70 : 0.50;   // 1년 미만 단기세율
+                const transferTax = transferBase * shortRate;
+                if(transferTax >= bizTax){ tax = transferTax; label = `비교과세 → 양도세상당 ${shortRate*100}%`; }
+                else { const eff = bizBase>0 ? bizTax/bizBase : 0; tax = bizTax; label = `비교과세 → 종소세 ${(eff*100).toFixed(1)}%`; }
+            } else {
+                const r = calcTax(taxBase, { entity:sc.entity, prop, holding:sc.holding, other, flatRate:0 });
+                tax = r.tax; label = r.label;
+            }
+            const localTax = tax*0.10;
+            // 부가세: 매매사업자·법인 + (비주택 또는 주택 85㎡초과) → 건물분 × 10% (매출부가세, 매입공제 미반영)
+            const vatApplies = (sc.entity==='business'||sc.entity==='corp') && (prop==='nonhouse' || (prop==='house' && over85));
+            const vat = vatApplies ? sell*(buildingRatio||0)*0.10 : 0;
+            const incomeTax = (sc.holding==='exempt') ? 0 : (tax + localTax);
+            const net = gross - incomeTax - vat;                   // 실제차익 − 양도소득세 − 부가세
+            const cashIn = base.equity + costTotal;
+            const roe = cashIn>0 ? net/cashIn : 0;
+            const bidRate = appr>0 ? bid/appr : 0;
+            return { base, ar, acq, costTotal, gross, nonDeduct, deduction, taxBase, tax, localTax, label, vat, net, cashIn, roe, bidRate };
+        }
+
+        // ===== analyze =====
+        function analyze(){
+            const appr=parseNum($('i_appr').value), bid=parseNum($('i_bid').value), sell=parseNum($('i_sell').value);
+            const box=$('result');
+            if(!bid||!sell){ box.className='result show'; box.innerHTML='<div class="note" style="color:#c2710c;background:#fff8ec">낙찰가와 매도가를 입력하세요.</div>'; return; }
+            const other=parseNum($('t_other').value);
+            const over85=(state.area84==='gt');
+            const heavyExempt = (state.pub==='under');
+            const buildingRatio = parseNum($('b_ratio').value)/100;
+            const scens=SCENARIOS.filter(sc => !(sc.houseOnly && state.prop!=='house'));
+            const adj=(state.adj==='adj');
+            const rows=scens.map(sc => ({sc, ...computeScenario(appr,bid,sell, sc, state.prop, state.houses, over85, other, heavyExempt, buildingRatio, adj)}));
+            const anyVat=rows.some(r=>r.vat>0);
+            let bestI=0; rows.forEach((r,i)=>{ if(r.net>rows[bestI].net) bestI=i; });
+            const best=rows[bestI];
+            const b0=computeBase(bid,sell); // 공통 비용(취득세 제외)
+
+            let h='';
+            h+=settingsSummaryHTML();
+            h+='<div class="headline-row">';
+            h+=hl('slate','매도가(시세)',fmt(sell)+'원',toKorean(sell));
+            h+=hl('green','최선 순수익',fmt(best.net)+'원',best.sc.name+' · '+(best.roe*100).toFixed(1)+'%');
+            h+=hl('main','낙찰가율',appr?(best.bidRate*100).toFixed(1)+'%':'–','현금투입 '+fmt(best.cashIn)+'원');
+            h+='</div>';
+
+            // 명의별 비교표 (취득세 포함)
+            h+='<div class="subhead" style="margin-top:0">명의별 취득세 · 양도소득세 · 순수익 비교</div>';
+            h+='<div class="scroll-x"><table class="bd cmp">';
+            h+='<tr class="sec"><td>전략</td><td style="text-align:right">취득세</td><td style="text-align:right">양도·소득세<br><span style="font-weight:400">(지방세 포함)</span></td>'+(anyVat?'<td style="text-align:right">부가세<br><span style="font-weight:400">(건물분10%)</span></td>':'')+'<td style="text-align:right">순수익</td><td style="text-align:right">수익률</td></tr>';
+            rows.forEach((r,i)=>{
+                const tot=r.tax+r.localTax;
+                h+='<tr class="'+(i===bestI?'best':'')+'">'
+                   +'<td><span class="stagstrat">'+r.sc.name+'</span>'+(i===bestI?'<span class="bestpill">최선</span>':'')+'<br><span class="stagsub">'+r.label+'</span></td>'
+                   +'<td class="v">'+fmt(r.acq)+'<br><span class="stagsub">'+(r.ar*100).toFixed(1)+'%</span></td>'
+                   +'<td class="v">'+fmt(tot)+'</td>'
+                   +(anyVat?'<td class="v">'+(r.vat>0?fmt(r.vat):'–')+'</td>':'')
+                   +'<td class="v">'+fmt(r.net)+'</td>'
+                   +'<td class="v">'+(r.roe*100).toFixed(1)+'%</td></tr>';
+            });
+            h+='</table></div>';
+            h+='<p style="font-size:11px;color:#aaa;margin:6px 2px 0">취득세 = 명의·물건유형·주택수·전용85㎡ 자동 적용(교육세·농특세 포함). 수익률 = 순수익 ÷ 각 명의 현금투입.</p>';
+            const nonDeductPersonal = b0.interiorRev + b0.interest + b0.prepayFee + b0.clean + b0.mgmt + b0.evict;
+            if(nonDeductPersonal>0) h+='<p style="font-size:11px;color:#c2710c;margin:2px 2px 0">※ 대출이자·중도상환수수료·관리비·입주청소·명도비·수선도배 합계 <b>'+fmt(nonDeductPersonal)+'원</b>은 개인 양도세 필요경비 불인정 → 과세표준에 가산(매매사업자·법인은 비용 인정).</p>';
+            if(state.prop==='house' && heavyExempt) h+='<p style="font-size:11px;color:#0f8a52;margin:2px 2px 0">※ 공시가격 '+(state.metro==='local'?'비수도권 2억':'1억')+' 이하 → 법인·다주택 취득세 <b>중과배제</b>, 기본세율 적용.</p>';
+            if(anyVat) h+='<p style="font-size:11px;color:#aaa;margin:2px 2px 0">부가세 = 매도가 × 건물분 '+(buildingRatio*100).toFixed(0)+'% × 10% (매매사업자·법인, '+(state.prop==='house'?'주택 85㎡초과':'비주택')+' 과세 / 매입세액공제 미반영).</p>';
+
+            // 공통 비용·투자 내역 (취득세 제외)
+            h+='<table class="bd" style="margin-top:6px">';
+            h+=secRow('비용 내역 (공통 · 취득세 제외)');
+            h+=row('법무비', fmt(b0.legal), '등기 등');
+            h+=row('중개비', fmt(b0.broker), (b0.brokerRate*100).toFixed(2)+'% × 매도가');
+            h+=row('인테리어(자본적)', fmt(b0.interiorCap), '필요경비 인정');
+            h+=row('수선·도배(수익적)', fmt(b0.interiorRev), '개인양도 불인정');
+            h+=row('입주청소', fmt(b0.clean), '');
+            h+=row('관리비', fmt(b0.mgmt), '');
+            h+=row('대출이자', fmt(b0.interest), (b0.rate*100)+'% × '+b0.months+'개월');
+            h+=row('중도상환수수료', fmt(b0.prepayFee), (b0.prepay*100)+'% × 대출액');
+            h+=row('명도비', fmt(b0.evict), '');
+            h+=row('<b>공통비용 합계</b>', '<b>'+fmt(b0.otherCost)+'</b>', '+ 명의별 취득세', 'total2');
+            h+=secRow('투자 · 현금 ('+best.sc.name+' 기준)');
+            h+=row('매도가 − 낙찰가', fmt(sell-bid), '');
+            h+=row('취득세', fmt(best.acq), (best.ar*100).toFixed(1)+'%');
+            h+=row('시세차익', fmt(best.gross), '− 비용합계');
+            h+=row('경락자금대출', fmt(b0.loan), (b0.ratio*100)+'% × 낙찰가');
+            h+=row('자기자본(보증금+잔금)', fmt(b0.equity), '낙찰가 − 대출');
+            h+=row('<b>현금투입</b>', '<b>'+fmt(best.cashIn)+'</b>', '자기자본 + 비용합계', 'total2');
+            h+='</table>';
+
+            // 타겟 적합도 (최선 명의 기준)
+            const c1=best.net>=50000000, c2=(sell>appr && appr>0), c3=best.roe>=0.30;
+            const pass=[c1,c2,c3].filter(Boolean).length;
+            h+='<div class="note" style="background:'+(pass===3?'#e7f6ee':'#f7f9fc')+'">';
+            h+='<b>타겟 적합도 '+pass+'/3</b> <span style="color:#aaa">(최선 명의 기준)</span><br>';
+            h+=(c1?'✅':'⚠️')+' 순수익 5천↑ &nbsp; '+(c2?'✅':'⚠️')+' 매도가&gt;감정가 &nbsp; '+(c3?'✅':'⚠️')+' 수익률 30%↑';
+            h+='</div>';
+
+            box.className='result show'; box.innerHTML=h;
+        }
+
+        // ===== reverse: solve bid for target net =====
+        function reverse(){
+            const sell=parseNum($('rc_sell').value), target=parseNum($('rc_target').value), appr=parseNum($('rc_appr').value);
+            const box=$('rresult');
+            if(!sell||!target){ box.className='result show'; box.innerHTML='<div class="note" style="color:#c2710c;background:#fff8ec">매도가와 목표 순수익을 입력하세요.</div>'; return; }
+            const other=parseNum($('t_other').value);
+            const over85=(state.area84==='gt');
+            const heavyExempt=(state.pub==='under');
+            const buildingRatio=parseNum($('b_ratio').value)/100;
+            const scens=SCENARIOS.filter(sc => !(sc.houseOnly && state.prop!=='house'));
+            const results=scens.map(sc=>{
+                const calc = bid => computeScenario(appr||sell, bid, sell, sc, state.prop, state.houses, over85, other, heavyExempt, buildingRatio, (state.adj==='adj'));
+                if(calc(0).net < target) return {sc, ok:false};
+                let lo=0,hi=sell;
+                for(let i=0;i<80;i++){ const m=(lo+hi)/2; if(calc(m).net>=target) lo=m; else hi=m; }
+                return {sc, ok:true, bid:lo, r:calc(lo)};
+            });
+            let bestI=-1; results.forEach((x,i)=>{ if(x.ok && (bestI<0 || x.bid>results[bestI].bid)) bestI=i; });
+
+            let h='';
+            h+=settingsSummaryHTML();
+            h+='<div class="note" style="background:#f4f8ff;border-left:3px solid #007AFF;color:#555">매도가 <b>'+fmt(sell)+'원</b>에서 순수익 <b>'+toKorean(target)+'</b>을 남기기 위한 <b>명의별 최대 낙찰가</b>. 높을수록 입찰 여유가 큽니다.</div>';
+            h+='<div class="scroll-x"><table class="bd cmp">';
+            h+='<tr class="sec"><td>전략</td><td style="text-align:right">목표 낙찰가</td><td style="text-align:right">낙찰가율</td><td style="text-align:right">취득세</td></tr>';
+            results.forEach((x,i)=>{
+                if(!x.ok){
+                    h+='<tr><td><span class="stagstrat">'+x.sc.name+'</span> <span class="stagsub">'+x.sc.sub+'</span></td><td class="v" colspan="3" style="text-align:right;color:#d64545">달성 불가</td></tr>';
+                    return;
+                }
+                const rate = appr ? (x.bid/appr*100).toFixed(1)+'%' : '–';
+                h+='<tr class="'+(i===bestI?'best':'')+'">'
+                   +'<td><span class="stagstrat">'+x.sc.name+'</span>'+(i===bestI?'<span class="bestpill">여유</span>':'')+'<br><span class="stagsub">'+x.r.label+'</span></td>'
+                   +'<td class="v"><b>'+fmt(x.bid)+'</b></td>'
+                   +'<td class="v">'+rate+'</td>'
+                   +'<td class="v">'+fmt(x.r.acq)+'<br><span class="stagsub">'+(x.r.ar*100).toFixed(1)+'%</span></td></tr>';
+            });
+            h+='</table></div>';
+            h+='<p style="font-size:11px;color:#aaa;margin:6px 2px 0">'+(appr?'낙찰가율 = 목표 낙찰가 ÷ 감정가.':'감정가를 입력하면 낙찰가율도 표시됩니다.')+' 현금투입·부가세 등은 위 설정 반영.</p>';
+            box.className='result show'; box.innerHTML=h;
+        }
+
+        // ===== 입찰가 시뮬레이션 =====
+        function simulate(){
+            const appr=parseNum($('sim_appr').value), sell=parseNum($('sim_sell').value);
+            const from=parseNum($('sim_from').value), to=parseNum($('sim_to').value), step=parseNum($('sim_step').value)||5;
+            const box=$('sresult');
+            if(!appr||!sell){ box.className='result show'; box.innerHTML='<div class="note" style="color:#c2710c;background:#fff8ec">감정가와 매도가를 입력하세요.</div>'; return; }
+            const scens=SCENARIOS.filter(sc => !(sc.houseOnly && state.prop!=='house'));
+            const other=parseNum($('t_other').value), over85=(state.area84==='gt'), heavyExempt=(state.pub==='under'), buildingRatio=parseNum($('b_ratio').value)/100;
+            const n = (step>0 && to>=from) ? Math.floor((to-from)/step+1e-9) : 0;
+            let h='';
+            h+=settingsSummaryHTML();
+            h+='<div class="note" style="background:#f4f8ff;border-left:3px solid #007AFF;color:#555">낙찰가를 얼마 쓰느냐(낙찰가율)에 따라 <b>명의별 세후 순수익</b>이 어떻게 달라지는지 봅니다. 낮게 받을수록 순수익↑(대신 낙찰 경쟁↑). 맨 오른쪽 <b>최선 명의</b> = 그 가격에서 가장 많이 남는 명의입니다.</div>';
+            h+='<div class="scroll-x"><table class="bd cmp">';
+            h+='<tr class="sec"><td>낙찰가율</td><td style="text-align:right">낙찰가</td>'
+               +scens.map(sc=>'<td style="text-align:right">'+sc.name+'<br><span style="font-weight:400;font-size:10px;color:#b6bdc6">'+sc.sub+'</span></td>').join('')
+               +'<td style="text-align:right">최선 명의</td></tr>';
+            for(let k=0;k<=n;k++){
+                const pct=from+k*step, bid=appr*pct/100;
+                const nets=scens.map(sc=>computeScenario(appr,bid,sell, sc, state.prop, state.houses, over85, other, heavyExempt, buildingRatio, (state.adj==='adj')).net);
+                let best=-Infinity,bj=-1; nets.forEach((v,j)=>{ if(v>best){best=v;bj=j;} });
+                h+='<tr><td class="v">'+pct.toFixed(0)+'%</td><td class="v">'+fmt(bid)+'</td>';
+                nets.forEach((net,j)=>{ const cls=net<0?'negv':(net>=50000000?'pos':''); h+='<td class="v '+cls+'">'+(j===bj?'<b>'+fmt(net)+'</b>':fmt(net))+'</td>'; });
+                h+='<td class="v" style="background:#eafaf0"><b style="color:#0f8a52">'+scens[bj].name+'</b><br><span style="font-size:10px;color:#7a8794">'+scens[bj].sub+'</span></td>';
+                h+='</tr>';
+            }
+            h+='</table></div>';
+            h+='<p style="font-size:11px;color:#aaa;margin:6px 2px 0">셀 = 그 낙찰가율·그 명의의 세후 순수익. <span style="color:#0f8a52">초록=5천↑</span> · <span style="color:#d64545">빨강=손실</span> · 굵게=그 행 최선. 공통 설정(대출·부대비용·세금) 반영.</p>';
+            box.className='result show'; box.innerHTML=h;
+        }
+
+        function hl(cls,l,v,s){ return `<div class="hl ${cls}"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`; }
+        function row(k,v,c,cls){ return `<tr class="${cls||''}"><td class="k">${k}</td><td class="c">${c||''}</td><td class="v">${v}</td></tr>`; }
+        function secRow(t){ return `<tr class="sec"><td colspan="3">${t}</td></tr>`; }
+        // 결과 맨 위 "적용된 공통설정 요약" 띠
+        function settingsSummaryHTML(){
+            const prop = state.prop==='house' ? '주택' : '비주택';
+            const houses = state.houses==='1'?'1주택':state.houses==='2'?'2주택':'3주택+';
+            const adj = state.adj==='adj'?'조정대상지역':'비조정지역';
+            const ratio = parseNum($('l_ratio').value), rate = parseNum($('l_rate').value), months = parseNum($('l_months').value);
+            const area = state.area84==='gt'?'85㎡초과':'84㎡이하';
+            return `<div class="settings-summary">⚙️ <b>적용된 공통 설정</b> · 대출 ${ratio}% · 금리 ${rate}% · ${months}개월 · ${prop} · ${houses} · ${adj} · ${area} &nbsp;<a href="#common" style="color:#007AFF;text-decoration:none;font-weight:600;">설정 변경 ↓</a></div>`;
+        }
+
+        function resetForm(){
+            ['i_case','i_appr','i_bid','i_sell'].forEach(id=>{ $(id).value=''; if($(id+'_ro'))$(id+'_ro').textContent=''; });
+            $('result').className='result';
+            saveLocal();
+        }
+
+        // ===== 입력값 저장/복원 + URL 공유 =====
+        const ALL_INPUTS = ['i_case','i_appr','i_bid','i_sell','rc_sell','rc_target','rc_appr','sim_appr','sim_sell','sim_from','sim_to','sim_step','l_ratio','l_rate','l_months','l_prepay','c_legal','c_brokerrate','c_interior_cap','c_interior_rev','c_clean','c_mgmt','c_evict','t_other','b_ratio','mk_addr','mk_area','mk_tol'];
+        const SEG_KEYS = ['prop','houses','metro','pub','area84','adj'];
+        const STORE_KEY = 'auction:v1';
+
+        function collectData(){
+            const d = { inputs:{}, state:{} };
+            ALL_INPUTS.forEach(id=>{ const el=$(id); if(el) d.inputs[id]=el.value; });
+            SEG_KEYS.forEach(k=>{ d.state[k]=state[k]; });
+            return d;
+        }
+        function applyData(d){
+            if(!d) return;
+            if(d.state) SEG_KEYS.forEach(k=>{
+                if(d.state[k]===undefined) return;
+                state[k]=d.state[k];
+                const g=document.querySelector('.seg-group[data-state="'+k+'"]');
+                if(g){ g.querySelectorAll('.seg').forEach(x=>x.classList.remove('active'));
+                       const b=g.querySelector('.seg[data-val="'+d.state[k]+'"]'); if(b)b.classList.add('active'); }
+            });
+            if(d.inputs) ALL_INPUTS.forEach(id=>{
+                if(d.inputs[id]===undefined) return;
+                const el=$(id); if(!el) return;
+                el.value=d.inputs[id];
+                const ro=$(id+'_ro'); if(ro) ro.textContent = d.inputs[id] ? toKorean(parseNum(d.inputs[id])) : '';
+            });
+            updatePubLabels(); updateBuildingRatioState();
+            if(typeof updateMarketLinks==='function') updateMarketLinks();
+        }
+        function saveLocal(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(collectData())); }catch(e){} }
+
+        // 모든 입력 변경 시 자동 저장
+        ALL_INPUTS.forEach(id=>{ const el=$(id); if(el) el.addEventListener('input', saveLocal); });
+        document.querySelectorAll('.seg-group').forEach(g=>g.addEventListener('click', e=>{ if(e.target.closest('.seg')) saveLocal(); }));
+
+        // URL 공유
+        function buildShareURL(){
+            const enc = btoa(unescape(encodeURIComponent(JSON.stringify(collectData()))));
+            return location.origin + location.pathname + '?d=' + enc;
+        }
+        $('shareBtn').addEventListener('click', async ()=>{
+            const url = buildShareURL();
+            const flash = msg => { const b=$('shareBtn'); const o=b.dataset.orig||(b.dataset.orig=b.textContent); b.textContent=msg; setTimeout(()=>b.textContent=o,1600); };
+            try{ await navigator.clipboard.writeText(url); flash('✓ 링크 복사됨'); }
+            catch(e){ window.prompt('아래 공유 링크를 복사하세요:', url); }
+        });
+
+        // ===== 시세조사 딥링크 생성 =====
+        function extractDong(addr){
+            const parts = addr.trim().split(/\s+/);
+            for(let i=parts.length-1;i>=0;i--){ if(/^[가-힣]+(동|읍|면|가|리)$/.test(parts[i])) return parts[i]; }
+            return addr.trim();
+        }
+        // 번지(숫자 포함 토큰) 제거 → "시 구 동"만 남김 (네이버 부동산 지역검색은 구 맥락 필요)
+        function extractRegion(addr){
+            return addr.trim().split(/\s+/).filter(p=>p && !/\d/.test(p) && !/[-~]/.test(p)).join(' ');
+        }
+        function updateMarketLinks(){
+            const addr = ($('mk_addr').value||'').trim();
+            const area = parseNum($('mk_area').value);
+            const tol  = parseNum($('mk_tol').value) || 0;
+            const ro = $('mk_readout');
+            // 면적 환산 + 권장 범위
+            if(area>0){
+                const pyeong = (area*0.3025).toFixed(1);
+                const lo=(area-tol), hi=(area+tol);
+                ro.textContent = `전용 ${area}㎡ ≈ ${pyeong}평` + (tol>0 ? ` · 유사 면적 ${lo}~${hi}㎡ (약 ${(lo*0.3025).toFixed(1)}~${(hi*0.3025).toFixed(1)}평)으로 검색` : '');
+            } else { ro.textContent=''; }
+
+            const dong = extractDong(addr);
+            const region = extractRegion(addr) || dong;     // 시 구 동
+            const qAddr = encodeURIComponent(addr || region);
+            const qRegion = encodeURIComponent(region);
+            const qNaverSearch = encodeURIComponent(region + ' 빌라 매매');
+            const disabled = !addr;
+            const links = [
+                {n:'네이버 통합검색', d:'동네 빌라 매물 검색', href:`https://search.naver.com/search.naver?query=${qNaverSearch}`},
+                {n:'네이버 지도', d:'위치·로드뷰 확인', href:`https://map.naver.com/p/search/${qAddr}`},
+                {n:'카카오맵', d:'위치·로드뷰 확인', href:`https://map.kakao.com/?q=${qAddr}`},
+            ];
+            $('mk_links').innerHTML = disabled
+                ? '<div style="font-size:12.5px;color:#aaa;padding:4px 2px;">주소를 입력하면 검색 링크가 생성됩니다.</div>'
+                : links.map(l=>`<a class="qlink" href="${l.href}" target="_blank" rel="noopener"><span class="n">${l.n} ↗</span><span class="d">${l.d}</span></a>`).join('');
+        }
+        ['mk_addr','mk_area','mk_tol'].forEach(id=>$(id).addEventListener('input', updateMarketLinks));
+        updateMarketLinks();
+
+        // ===== 다크모드 토글 (기본: 시스템 OS 설정 / 사용자 선택 시 저장·우선) =====
+        (function(){
+            const btn = $('themeToggle');
+            const setIcon = () => { btn.textContent = document.documentElement.getAttribute('data-theme')==='dark' ? '☀️' : '🌙'; };
+            btn.addEventListener('click', () => {
+                const dark = document.documentElement.getAttribute('data-theme')==='dark';
+                if(dark){ document.documentElement.removeAttribute('data-theme'); }
+                else { document.documentElement.setAttribute('data-theme','dark'); }
+                try{ localStorage.setItem('theme', dark ? 'light' : 'dark'); }catch(e){}
+                setIcon();
+            });
+            // 사용자가 직접 선택한 적 없으면 시스템 설정 변경을 실시간 반영
+            if(window.matchMedia){
+                matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e=>{
+                    let saved=null; try{ saved=localStorage.getItem('theme'); }catch(_){}
+                    if(saved) return;
+                    if(e.matches) document.documentElement.setAttribute('data-theme','dark');
+                    else document.documentElement.removeAttribute('data-theme');
+                    setIcon();
+                });
+            }
+            setIcon();
+        })();
+
+        // ===== samples ===== (대출·비용은 기본값 사용)
+        const SAMPLES=[
+            {case:'2022타경○○○○',name:'화곡동 ○○빌라 (A)',appr:236000000,bid:198340000,sell:265000000,badges:['강서구 화곡동','역세권 도보5~8분','방3/화1','2001년식']},
+            {case:'2023타경○○○○',name:'화곡동 ○○빌라 (B)',appr:233000000,bid:187600000,sell:246000000,badges:['강서구 화곡동','초품빌·도보11분','방3/화2','2001년식']},
+            {case:'2024타경○○○○',name:'수원 ○○빌라 (근생)',appr:154000000,bid:107880000,sell:165000000,badges:['수원 팔달구','초품빌·역·재개발','근생빌라','신탁대출90%']},
+            {case:'예시',name:'단기매도 샘플',appr:307000000,bid:199550000,sell:260000000,badges:['감정가 65% 낙찰','대출 70%','단기매도']},
+        ];
+        function renderSamples(){
+            $('sampleGrid').innerHTML = SAMPLES.map((s,i)=>{
+                const br=(s.bid/s.appr*100).toFixed(1), prof=s.sell-s.bid;
+                return `<div class="sample-card" onclick="loadSample(${i})">
+                    <div class="sc-case">${s.case}</div><div class="sc-name">${s.name}</div>
+                    <div class="sc-rows">
+                        <div class="sc-row"><span class="k">감정가</span><span class="vv">${fmt(s.appr)}</span></div>
+                        <div class="sc-row"><span class="k">낙찰가</span><span class="vv">${fmt(s.bid)}</span></div>
+                        <div class="sc-row"><span class="k">매도가</span><span class="vv">${fmt(s.sell)}</span></div>
+                        <div class="sc-row"><span class="k">매도−낙찰</span><span class="vv" style="color:#0f8a52">${fmt(prof)}</span></div>
+                    </div>
+                    <div class="sc-badges"><span class="badge green">낙찰 ${br}%</span>${s.badges.map(b=>`<span class="badge">${b}</span>`).join('')}</div>
+                    <div class="sc-load">↓ 불러와서 분석</div></div>`;
+            }).join('');
+        }
+        function loadSample(i){
+            const s=SAMPLES[i];
+            const set=(id,val)=>{ $(id).value=val.toLocaleString('ko-KR'); if($(id+'_ro'))$(id+'_ro').textContent=toKorean(val); };
+            document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+            document.querySelectorAll('.tab-body').forEach(x=>x.classList.remove('active'));
+            document.querySelector('.tab[data-tab="analyze"]').classList.add('active');
+            $('tab-analyze').classList.add('active');
+            $('i_case').value = s.case+' '+s.name;
+            set('i_appr',s.appr); set('i_bid',s.bid); set('i_sell',s.sell);
+            analyze();
+            $('result').scrollIntoView({behavior:'smooth',block:'nearest'});
+        }
+        renderSamples();
+
+        // ===== 초기화: URL 공유값 > localStorage 순으로 복원 =====
+        (function initRestore(){
+            const enc = new URLSearchParams(location.search).get('d');
+            if(enc){
+                try{
+                    applyData(JSON.parse(decodeURIComponent(escape(atob(enc)))));
+                    saveLocal();
+                    analyze();
+                    $('result').scrollIntoView({behavior:'smooth', block:'nearest'});
+                    return;
+                }catch(e){ /* 잘못된 링크 → localStorage로 폴백 */ }
+            }
+            try{ const raw=localStorage.getItem(STORE_KEY); if(raw) applyData(JSON.parse(raw)); }catch(e){}
+        })();
+    </script>
+
+    <!-- GoatCounter 방문자 추적 (index.html과 동일 계정) -->
+    <script data-goatcounter="https://soulmeethello.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

@@ -1,2 +1,13 @@
 *.xlsx
 ~$*
+
+# 비밀키 — 절대 커밋 금지
+.env
+.env.local
+
+# 기타
+.DS_Store
+node_modules/
+
+# 로컬 에디터/툴 설정
+.claude/
