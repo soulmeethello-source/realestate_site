@@ -15,8 +15,10 @@
         .header { background: linear-gradient(135deg, #0051d5 0%, #007AFF 100%); color: #fff; padding: 40px 24px 48px; text-align: center; }
         .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
         .header p { font-size: 13.5px; opacity: 0.88; }
-        .header .home-link { display: inline-block; margin-top: 14px; font-size: 13px; color: #fff; background: rgba(255,255,255,0.18); padding: 6px 14px; border-radius: 20px; text-decoration: none; transition: background 0.2s; }
+        .header .home-link { display: inline-flex; align-items: center; font-size: 13px; color: #fff; background: rgba(255,255,255,0.18); padding: 7px 14px; border-radius: 20px; text-decoration: none; transition: background 0.2s; white-space: nowrap; border: none; cursor: pointer; font-family: inherit; }
         .header .home-link:hover { background: rgba(255,255,255,0.3); }
+        .header-links { margin: 14px auto 0; display: flex; flex-wrap: nowrap; justify-content: center; gap: 8px; }
+        @media (max-width: 480px) { .header .home-link { font-size: 11.5px; padding: 6px 10px; } .header-links { gap: 5px; } }
         .container { max-width: 1120px; margin: 0 auto; padding: 0 18px 64px; }
         .card { background: #fff; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.07); padding: 18px 20px; margin-top: -28px; position: relative; z-index: 10; }
 
@@ -94,8 +96,11 @@
     <div class="header">
         <h1>🏘️ 수도권 빌라 거래량 분석 랭킹</h1>
         <p id="subhead">연립다세대 매매 실거래가 기반 · 유동성 + 법인매수 신호</p>
-        <a class="home-link" href="/">← 부동산 사이트 모음</a>
-        <a class="home-link" href="/auction/" style="margin-left:8px;">&#129518; 경매 수익률 계산기</a>
+        <div class="header-links">
+            <a class="home-link" href="/">← 부동산 사이트 모음</a>
+            <a class="home-link" href="/auction/">&#129518; 경매 수익률 계산기</a>
+            <button type="button" class="home-link" id="shareBtn">🔗 공유하기</button>
+        </div>
     </div>
 
     <div class="container">
@@ -281,6 +286,17 @@
                 if(s) return; if(e.matches) document.documentElement.setAttribute('data-theme','dark'); else document.documentElement.removeAttribute('data-theme'); setIcon();
             }); }
             setIcon();
+        })();
+
+        // 공유하기
+        (function(){
+            const btn = document.getElementById('shareBtn'); if(!btn) return;
+            const URL_ = 'https://estate.lifetiming.kr/ranking', MSG = '수도권 빌라 거래량 분석 랭킹 — 실거래 기반 동네별 유동성·시세';
+            btn.addEventListener('click', async ()=>{
+                const flash = m => { const o=btn.dataset.orig||(btn.dataset.orig=btn.textContent); btn.textContent=m; setTimeout(()=>btn.textContent=o,1600); };
+                if(navigator.share){ try{ await navigator.share({title:'수도권 빌라 거래량', text:MSG, url:URL_}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+                try{ await navigator.clipboard.writeText(MSG+'\n'+URL_); flash('✓ 복사됨'); }catch(e){ window.prompt('아래 링크를 복사하세요:', URL_); }
+            });
         })();
 
         // 데이터 로드

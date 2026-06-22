@@ -51,33 +51,33 @@
             opacity: 0.85;
         }
 
-        .header-ctas {
-            margin-top: 18px;
+        .header-links {
+            margin: 18px auto 0;
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
         }
-        .header-cta {
+        @media (max-width: 480px) {
+            .header .home-link { font-size: 11.5px; padding: 6px 10px; }
+            .header-links { gap: 5px; }
+        }
+        .header .home-link {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 11px 22px;
-            background: #fff;
-            color: #0051d5;
-            font-size: 15px;
-            font-weight: 600;
-            border-radius: 999px;
+            font-size: 13px;
+            color: #fff;
+            background: rgba(255,255,255,0.18);
+            padding: 7px 14px;
+            border-radius: 20px;
             text-decoration: none;
             white-space: nowrap;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.2s;
         }
-
-        .header-cta:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
-        }
+        .header .home-link:hover { background: rgba(255,255,255,0.3); }
 
         /* Category Nav */
         .category-nav {
@@ -358,7 +358,6 @@
         [data-theme="dark"] .footer { color: #8b909b; border-top-color: #2a2e37; }
         [data-theme="dark"] .footer-contact a { color: #6db3ff; }
         [data-theme="dark"] .no-results { color: #8b909b; }
-        [data-theme="dark"] .header-cta { background: #262a32; color: #6db3ff; }
         [data-theme="dark"] .theme-toggle { background: #262a32; border-color: #3a3f4a; color: #ffd479; }
 
         /* ===== 모바일: 카테고리 네비 가로 스크롤 1줄 ===== */
@@ -375,9 +374,10 @@
     <div class="header">
         <h1>부동산 사이트 모음</h1>
         <p>부동산 투자자가 만든 부동산 사이트 핵심 모음</p>
-        <div class="header-ctas">
-            <a href="/auction/" class="header-cta">&#129518; 경매 수익률 계산기</a>
-            <a href="/ranking/" class="header-cta">&#127962; 수도권 빌라 거래량</a>
+        <div class="header-links">
+            <a href="/auction/" class="home-link">&#129518; 경매 수익률 계산기</a>
+            <a href="/ranking/" class="home-link">&#127962; 수도권 빌라 거래량</a>
+            <button type="button" id="shareBtn" class="home-link">🔗 공유하기</button>
         </div>
     </div>
 
@@ -1088,6 +1088,17 @@
                 });
             }
             setIcon();
+        })();
+
+        // 공유하기
+        (function(){
+            const btn = document.getElementById('shareBtn'); if(!btn) return;
+            const URL_ = 'https://estate.lifetiming.kr/', MSG = '부동산 사이트 모음 — 투자자가 만든 핵심 사이트 모음 · 경매 수익률 계산기 · 수도권 빌라 거래량';
+            btn.addEventListener('click', async ()=>{
+                const flash = m => { const o=btn.dataset.orig||(btn.dataset.orig=btn.textContent); btn.textContent=m; setTimeout(()=>btn.textContent=o,1600); };
+                if(navigator.share){ try{ await navigator.share({title:'부동산 사이트 모음', text:MSG, url:URL_}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+                try{ await navigator.clipboard.writeText(MSG+'\n'+URL_); flash('✓ 복사됨'); }catch(e){ window.prompt('아래 링크를 복사하세요:', URL_); }
+            });
         })();
     </script>
 </body>
