@@ -130,7 +130,7 @@
                     </div>
                 </div>
                 <div class="ctrl search"><span>지역 검색</span>
-                    <input type="text" id="f_q" placeholder="동/구 이름… 예: 화곡, 미추홀">
+                    <input type="text" id="f_q" placeholder="동/구 이름, 쉼표로 여러 개… 예: 화곡, 와동, 미추홀">
                 </div>
             </div>
 
@@ -192,7 +192,7 @@
     <script>
         const $ = id => document.getElementById(id);
         let DATA = [], META = {};
-        const filt = { sido:'all', reg:'all', min:20, q:'' };
+        const filt = { sido:'all', reg:'all', min:20, terms:[] };
         const sort = { key:'단타지수', dir:-1 };
 
         const fmtPrice = won => {  // 만원 → 보기 좋게
@@ -206,7 +206,7 @@
             if (filt.reg === 'free' && d.규제) return false;
             if (filt.reg === 'reg' && !d.규제) return false;
             if (d.거래건수 < filt.min) return false;
-            if (filt.q && !d.지역.includes(filt.q)) return false;
+            if (filt.terms.length && !filt.terms.some(t=>d.지역.includes(t))) return false;
             return true;
         }
 
@@ -260,7 +260,7 @@
         bindSeg('f_sido','sido');
         bindSeg('f_reg','reg');
         bindSeg('f_min','min', v=>parseInt(v,10));
-        $('f_q').addEventListener('input', e=>{ filt.q = e.target.value.trim(); render(); });
+        $('f_q').addEventListener('input', e=>{ filt.terms = e.target.value.split(/[,\s]+/).map(s=>s.trim()).filter(Boolean); render(); });
 
         document.querySelectorAll('th[data-k]').forEach(th=>{
             th.addEventListener('click', ()=>{
