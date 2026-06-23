@@ -286,6 +286,8 @@
         [data-theme="dark"] .tag.warn { background: #3a2a17; color: #e0a258; }
     </style>
     <script>(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
+    <!-- 카카오 지도 SDK (주소→좌표 지오코딩, JS키는 도메인 잠금) -->
+    <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=99aa4b0534f3b150d7f753993c769480&libraries=services&autoload=false"></script>
 </head>
 <body>
     <button class="theme-toggle" id="themeToggle" title="다크모드 전환" aria-label="다크모드 전환">🌙</button>
@@ -577,8 +579,8 @@
             <div id="mk_readout" style="font-size:12.5px;color:#0a8a52;margin:6px 2px 0;min-height:18px;"></div>
             <div class="qlinks" id="mk_links" style="margin-top:14px;"></div>
             <div class="note" style="margin-top:14px;">
-                <b>사용법</b> — 지도(네이버·카카오)로 위치·로드뷰를 확인하고, 위 <b>유사 면적(평형)</b>을 기준으로 매물을 살펴보세요.<br>
-                <span style="color:#c2710c">⚠️ 네이버 부동산은 좌표·단지명 기반이라 "동네 빌라 + 면적 필터" 목록은 URL로 못 엽니다(아파트는 단지명 검색만 가능). 통합검색은 매물이 있을 때만 노출됩니다.</span><br>
+                <b>사용법</b> — 주소를 입력하면 <b>🏠 네이버 빌라 매물</b> 버튼이 생겨요. 누르면 그 동네 빌라 매매 매물이 네이버페이 부동산에 바로 뜨고, 전용면적을 넣으면 <b>해당 면적대만</b> 걸러서 보여줍니다.<br>
+                <span style="color:#aaa">지도(네이버·카카오)로는 위치·로드뷰를 확인하세요.</span><br>
                 <span style="color:#aaa">빌라의 <b>면적별 최저·중위 시세</b>는 다음 단계(공공 실거래가 API)에서 사이트 안에 직접 표시할 예정입니다. 호가 최저가는 급매·하자일 수 있으니 실거래 중위값과 함께 보세요.</span>
             </div>
         </div>
@@ -1165,19 +1167,50 @@
             const dong = extractDong(addr);
             const region = extractRegion(addr) || dong;     // 시 구 동
             const qAddr = encodeURIComponent(addr || region);
-            const qRegion = encodeURIComponent(region);
             const qNaverSearch = encodeURIComponent(region + ' 빌라 매매');
             const disabled = !addr;
-            const links = [
-                {n:'네이버 통합검색', d:'동네 빌라 매물 검색', href:`https://search.naver.com/search.naver?query=${qNaverSearch}`},
+            const links = [];
+            if(mkGeo){  // 카카오 지오코딩 성공 → 좌표 기반 네이버 부동산 빌라 매물 (정밀)
+                let href = `https://new.land.naver.com/houses?ms=${mkGeo.lat},${mkGeo.lng},16&a=VL&b=A1&e=RETAIL`;
+                let d = '그 동네 빌라 매매 (좌표 정밀)';
+                if(area>0){  // 전용면적 ± 오차 → h(최소)·i(최대) 면적 필터
+                    const h = Math.max(0, Math.round(area - tol)), i = Math.round(area + tol);
+                    href += `&h=${h}&i=${i}`;
+                    d = `빌라 매매 · 전용 ${h}~${i}㎡ (정밀)`;
+                }
+                links.push({n:'🏠 네이버 빌라 매물', d:d, href:href});
+            } else {  // 지오코딩 실패 시에만 폴백
+                links.push({n:'네이버 통합검색', d:'동네 빌라 매물 검색', href:`https://search.naver.com/search.naver?query=${qNaverSearch}`});
+            }
+            links.push(
                 {n:'네이버 지도', d:'위치·로드뷰 확인', href:`https://map.naver.com/p/search/${qAddr}`},
-                {n:'카카오맵', d:'위치·로드뷰 확인', href:`https://map.kakao.com/?q=${qAddr}`},
-            ];
+                {n:'카카오맵', d:'위치·로드뷰 확인', href:`https://map.kakao.com/?q=${qAddr}`}
+            );
             $('mk_links').innerHTML = disabled
                 ? '<div style="font-size:12.5px;color:#aaa;padding:4px 2px;">주소를 입력하면 검색 링크가 생성됩니다.</div>'
                 : links.map(l=>`<a class="qlink" href="${l.href}" target="_blank" rel="noopener"><span class="n">${l.n} ↗</span><span class="d">${l.d}</span></a>`).join('');
         }
+        // 카카오 지오코딩 (주소 → 좌표) → 네이버 부동산 빌라 매물 정밀 링크
+        let mkGeo = null, mkGeocoder = null, mkGeoTimer = null;
+        function geocodeAddr(){
+            clearTimeout(mkGeoTimer);
+            const addr = ($('mk_addr').value||'').trim();
+            mkGeo = null;
+            if(!addr || !mkGeocoder) return;
+            mkGeoTimer = setTimeout(function(){
+                mkGeocoder.addressSearch(addr, function(res, status){
+                    if(window.kakao && status===kakao.maps.services.Status.OK && res[0]){
+                        mkGeo = { lat:(+res[0].y).toFixed(6), lng:(+res[0].x).toFixed(6) };
+                        updateMarketLinks();
+                    }
+                });
+            }, 500);
+        }
         ['mk_addr','mk_area','mk_tol'].forEach(id=>$(id).addEventListener('input', updateMarketLinks));
+        $('mk_addr').addEventListener('input', geocodeAddr);
+        if(window.kakao && window.kakao.maps && kakao.maps.load){
+            kakao.maps.load(function(){ mkGeocoder = new kakao.maps.services.Geocoder(); geocodeAddr(); });
+        }
         updateMarketLinks();
 
         // ===== 다크모드 토글 (기본: 시스템 OS 설정 / 사용자 선택 시 저장·우선) =====
