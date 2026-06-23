@@ -85,6 +85,12 @@
         .field input:focus { border-color: #007AFF; }
         .field input.text-left { text-align: left; padding-right: 11px; }
         .field.full > input { width: 100%; }
+        .field select {
+            width: 100%; padding: 9px 11px; border: 1px solid #dde1e6;
+            border-radius: 9px; font-size: 14px; font-family: inherit; outline: none;
+            background: #fff; transition: border-color 0.2s; cursor: pointer;
+        }
+        .field select:focus { border-color: #007AFF; }
         .input-unit {
             position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
             font-size: 12px; color: #aaa; pointer-events: none;
@@ -246,6 +252,8 @@
         [data-theme="dark"] .field input { background: #262a32; border-color: #363b45; color: #e4e6eb; }
         [data-theme="dark"] .field input:focus { border-color: #4f9dff; }
         [data-theme="dark"] .field input::placeholder { color: #6b7180; }
+        [data-theme="dark"] .field select { background: #262a32; border-color: #363b45; color: #e4e6eb; }
+        [data-theme="dark"] .field select:focus { border-color: #4f9dff; }
         [data-theme="dark"] .input-unit { color: #7c828d; }
         [data-theme="dark"] .readout { color: #3fcf86; }
         [data-theme="dark"] .seg { background: #262a32; border-color: #363b45; color: #c4c8d0; }
@@ -575,11 +583,29 @@
                     <label>면적 허용오차 <span class="opt">(±)</span></label>
                     <div class="input-wrap"><input type="text" id="mk_tol" inputmode="decimal" value="2"><span class="input-unit">㎡</span></div>
                 </div>
+                <div class="field">
+                    <label>준공연도 <span class="opt">(연식 역산)</span></label>
+                    <div class="input-wrap"><input type="text" id="mk_year" inputmode="numeric" placeholder="예: 2000"><span class="input-unit">년식</span></div>
+                </div>
+                <div class="field">
+                    <label>연식 허용오차 <span class="opt">(±)</span></label>
+                    <div class="input-wrap"><input type="text" id="mk_yeartol" inputmode="numeric" value="5"><span class="input-unit">년</span></div>
+                </div>
+                <div class="field">
+                    <label>방 수 <span class="opt">(선택, 4↑=4개+)</span></label>
+                    <div class="input-wrap"><input type="text" id="mk_rooms" inputmode="numeric" placeholder="예: 3"><span class="input-unit">개</span></div>
+                </div>
+                <div class="field">
+                    <label>화장실 수 <span class="opt">(선택, 3↑=3개+)</span></label>
+                    <div class="input-wrap"><input type="text" id="mk_baths" inputmode="numeric" placeholder="예: 2"><span class="input-unit">개</span></div>
+                </div>
             </div>
             <div id="mk_readout" style="font-size:12.5px;color:#0a8a52;margin:6px 2px 0;min-height:18px;"></div>
             <div class="qlinks" id="mk_links" style="margin-top:14px;"></div>
             <div class="note" style="margin-top:14px;">
                 <b>사용법</b> — 주소를 입력하면 <b>🏠 네이버 빌라 매물</b> 버튼이 생겨요. 누르면 그 동네 빌라 매매 매물이 네이버페이 부동산에 바로 뜨고, 전용면적을 넣으면 <b>해당 면적대만</b> 걸러서 보여줍니다.<br>
+                <b>준공연도</b>를 넣으면 올해 기준으로 <b>연식을 역산</b>해, 허용오차(±) 범위의 <b>연식대 빌라만</b> 걸러서 보여줍니다. (예: 2000년식 ±5 → 연식 21~31년)<br>
+                <b>방 수·화장실 수</b>를 숫자로 넣으면 그 조건 매물만 보여줘요. (비우면 미적용 · 방 4↑=4개+, 화장실 3↑=3개+)<br>
                 <span style="color:#aaa">지도(네이버·카카오)로는 위치·로드뷰를 확인하세요.</span><br>
                 <span style="color:#aaa">빌라의 <b>면적별 최저·중위 시세</b>는 다음 단계(공공 실거래가 API)에서 사이트 안에 직접 표시할 예정입니다. 호가 최저가는 급매·하자일 수 있으니 실거래 중위값과 함께 보세요.</span>
             </div>
@@ -1156,13 +1182,25 @@
             const addr = ($('mk_addr').value||'').trim();
             const area = parseNum($('mk_area').value);
             const tol  = parseNum($('mk_tol').value) || 0;
+            const year = parseNum($('mk_year').value);
+            const yearTol = parseNum($('mk_yeartol').value) || 0;
+            const nowY = new Date().getFullYear();
+            const ageValid = year>=1900 && year<=nowY;
+            const age = ageValid ? (nowY - year) : null;     // 연식(나이) = 올해 − 준공연도
+            const ageLo = age!=null ? Math.max(0, age - yearTol) : null;   // 최소 연식 (신축쪽)
+            const ageHi = age!=null ? age + yearTol : null;                // 최대 연식 (구축쪽)
             const ro = $('mk_readout');
-            // 면적 환산 + 권장 범위
+            // 면적 환산 + 권장 범위 + 연식 역산 안내
+            let roParts = [];
             if(area>0){
                 const pyeong = (area*0.3025).toFixed(1);
                 const lo=(area-tol), hi=(area+tol);
-                ro.textContent = `전용 ${area}㎡ ≈ ${pyeong}평` + (tol>0 ? ` · 유사 면적 ${lo}~${hi}㎡ (약 ${(lo*0.3025).toFixed(1)}~${(hi*0.3025).toFixed(1)}평)으로 검색` : '');
-            } else { ro.textContent=''; }
+                roParts.push(`전용 ${area}㎡ ≈ ${pyeong}평` + (tol>0 ? ` · 유사 면적 ${lo}~${hi}㎡ (약 ${(lo*0.3025).toFixed(1)}~${(hi*0.3025).toFixed(1)}평)` : ''));
+            }
+            if(age!=null) roParts.push(yearTol>0
+                ? `연식 ${ageLo}~${ageHi}년 (${year-yearTol}~${year+yearTol}년식)`
+                : `연식 ${age}년 (${year}년식)`);
+            ro.textContent = roParts.join(' · ');
 
             const dong = extractDong(addr);
             const region = extractRegion(addr) || dong;     // 시 구 동
@@ -1176,8 +1214,17 @@
                 if(area>0){  // 전용면적 ± 오차 → h(최소)·i(최대) 면적 필터
                     const h = Math.max(0, Math.round(area - tol)), i = Math.round(area + tol);
                     href += `&h=${h}&i=${i}`;
-                    d = `빌라 매매 · 전용 ${h}~${i}㎡ (정밀)`;
+                    d = `빌라 매매 · 전용 ${h}~${i}㎡`;
                 }
+                if(age!=null){  // 준공연도 역산 → 연식(나이) k(최소)·j(최대) 필터
+                    href += `&k=${ageLo}&j=${ageHi}`;
+                    d += yearTol>0 ? ` · 연식 ${ageLo}~${ageHi}년` : ` · 연식 ${age}년`;
+                }
+                const ROOM_MAP={1:'ONEROOM',2:'TWOROOM',3:'THREEROOM',4:'FOURROOM'};
+                const BATH_MAP={1:'ONEBATH',2:'TOWBATH',3:'THREEBATH'};
+                const roomN = parseNum($('mk_rooms').value), bathN = parseNum($('mk_baths').value);
+                if(roomN>0){ href += `&q=${ROOM_MAP[Math.min(roomN,4)]}`; d += ` · 방 ${roomN>=4?'4개+':roomN+'개'}`; }
+                if(bathN>0){ href += `&r=${BATH_MAP[Math.min(bathN,3)]}`; d += ` · 화장실 ${bathN>=3?'3개+':bathN+'개'}`; }
                 links.push({n:'🏠 네이버 빌라 매물', d:d, href:href});
             } else {  // 지오코딩 실패 시에만 폴백
                 links.push({n:'네이버 통합검색', d:'동네 빌라 매물 검색', href:`https://search.naver.com/search.naver?query=${qNaverSearch}`});
@@ -1206,7 +1253,7 @@
                 });
             }, 500);
         }
-        ['mk_addr','mk_area','mk_tol'].forEach(id=>$(id).addEventListener('input', updateMarketLinks));
+        ['mk_addr','mk_area','mk_tol','mk_year','mk_yeartol','mk_rooms','mk_baths'].forEach(id=>$(id).addEventListener('input', updateMarketLinks));
         $('mk_addr').addEventListener('input', geocodeAddr);
         if(window.kakao && window.kakao.maps && kakao.maps.load){
             kakao.maps.load(function(){ mkGeocoder = new kakao.maps.services.Geocoder(); geocodeAddr(); });
