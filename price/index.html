@@ -62,6 +62,12 @@ td.l,th.l{ text-align:left; }
 .footer a{ color:var(--accent); text-decoration:none; }
 .footer a:hover{ text-decoration:underline; }
 .footer-contact{ margin-top:8px; font-size:13px; }
+.qlinks{ display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:11px; }
+.qlink{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:13px 15px; text-decoration:none; color:inherit; transition:all .2s; display:flex; flex-direction:column; gap:2px; }
+.qlink:hover{ border-color:var(--accent); transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,122,255,0.12); }
+.qlink .n{ font-size:13.5px; font-weight:600; color:var(--accent); }
+.qlink .d{ font-size:11.5px; color:var(--sub); }
+.research-title{ font-size:18px; font-weight:700; margin:0 0 14px; }
 .hint{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.5; }
 .warn{ background:#fff7e6; border:1px solid #ffe1a8; color:#8a5a00; padding:10px 12px; border-radius:9px; font-size:12.5px; margin-top:10px; }
 [data-theme="dark"] .warn{ background:#2a2410; border-color:#4a3d18; color:#e0c074; }
@@ -167,6 +173,24 @@ td.l,th.l{ text-align:left; }
    </div>
   </div><!-- /split -->
 
+  <div class="research-links" style="max-width:1080px;margin:30px auto 0;padding:0 16px;">
+    <div class="research-title">🔗 물건 조사 바로가기</div>
+    <div class="qlinks">
+      <a class="qlink" href="/auction/"><span class="n">경매 수익률 계산기</span><span class="d">레버리지·세금 순익 분석</span></a>
+      <a class="qlink" href="/compare/"><span class="n">빌라 시세비교</span><span class="d">유사매물·연식별 비교(화곡동)</span></a>
+      <a class="qlink" href="/map/"><span class="n">빌라 지도</span><span class="d">시군구 거래량·회전율 지도</span></a>
+      <a class="qlink" href="/ranking/"><span class="n">수도권 빌라 거래량</span><span class="d">실거래 거래량·회전율 랭킹</span></a>
+      <a class="qlink" href="https://exquisite-cendol-52ea4d.netlify.app/" target="_blank" rel="noopener"><span class="n">HUG 입찰 예측 계산기</span><span class="d">대항력포기 물건 HUG 입찰 예측</span></a>
+      <a class="qlink" href="https://www.hauction.co.kr/" target="_blank" rel="noopener"><span class="n">행크옥션</span><span class="d">권리분석·빌라시세</span></a>
+      <a class="qlink" href="https://www.courtauction.go.kr/pgj/index.on" target="_blank" rel="noopener"><span class="n">대법원 경매정보</span><span class="d">경매 물건 검색</span></a>
+      <a class="qlink" href="https://www.onbid.co.kr/op/dsa/main/main.do" target="_blank" rel="noopener"><span class="n">온비드</span><span class="d">공매·신탁공매</span></a>
+      <a class="qlink" href="https://rt.molit.go.kr/" target="_blank" rel="noopener"><span class="n">실거래가공개시스템</span><span class="d">시세 원본</span></a>
+      <a class="qlink" href="https://www.disco.re/" target="_blank" rel="noopener"><span class="n">디스코</span><span class="d">실거래가·시세</span></a>
+      <a class="qlink" href="https://www.iros.go.kr/" target="_blank" rel="noopener"><span class="n">인터넷등기소</span><span class="d">등기부등본</span></a>
+      <a class="qlink" href="https://xn--989a00af8jnslv3dba.com/" target="_blank" rel="noopener"><span class="n">부동산 계산기</span><span class="d">취득세·양도세</span></a>
+      <a class="qlink" href="/"><span class="n">부동산 사이트 모음</span><span class="d">전체 53개 도구·사이트</span></a>
+    </div>
+  </div>
   <div class="footer">
     국토교통부 실거래가 공개시스템(RTMS) 기반 · 빌라(연립다세대) 매매<br>
     호가가 아닌 실거래 기준입니다. 표본이 적은 동/반경은 변동성이 큽니다.
