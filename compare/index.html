@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>빌라 시세비교 | 유사매물·연식별 월별 실거래가 비교</title>
+    <meta name="description" content="국토부 실거래가 기반 빌라 시세비교 — 유사매물·연식(신축/구축)별 월별 시세를 한눈에 비교 (연식·면적·대지권·기간 조건 조절)">
+    <meta property="og:title" content="빌라 시세비교">
+    <meta property="og:description" content="조건을 바꾸면 유사매물·연식별 월별 시세가 비교되는 빌라 실거래가 비교 도구">
+    <meta property="og:type" content="website">
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SEL6E8JPDG"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-SEL6E8JPDG');</script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6f8; color: #333; line-height: 1.6; }
+        .header { background: linear-gradient(135deg, #0a84ff 0%, #0a8a52 100%); color: #fff; padding: 44px 24px 56px; text-align: center; }
+        .header h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+        .header p { font-size: 15px; opacity: 0.85; }
+        .header .home-link {
+            display: inline-flex; align-items: center; font-size: 13px; color: #fff;
+            background: rgba(255,255,255,0.18); padding: 7px 14px; border-radius: 20px;
+            text-decoration: none; transition: background 0.2s; white-space: nowrap;
+            border: none; cursor: pointer; font-family: inherit;
+        }
+        .header .home-link:hover { background: rgba(255,255,255,0.3); }
+        .header .home-link.active { background: rgba(255,255,255,0.34); font-weight: 700; cursor: default; }
+        .header-links { margin: 14px auto 0; display: flex; flex-wrap: nowrap; justify-content: safe center; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        @media (max-width: 480px) { .header h1 { font-size: 24px; } .header .home-link { font-size: 11.5px; padding: 6px 10px; } .header-links { gap: 5px; } }
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 18px 64px; }
+        .card { background: #fff; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.07); padding: 20px 22px; margin-top: -28px; position: relative; z-index: 10; }
+
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 16px 20px; align-items: end; }
+        .ctrl > span { display:block; font-size: 11.5px; font-weight: 700; color: #888; margin-bottom: 6px; }
+        .ctrl .row { display: flex; align-items: center; gap: 6px; }
+        .ctrl input[type=number], .ctrl input[type=text], .ctrl select { width: 100%; padding: 8px 9px; border: 1px solid #dde1e6; border-radius: 9px; font-size: 13.5px; font-family: inherit; outline: none; background:#fff; }
+        .ctrl input:focus, .ctrl select:focus { border-color: #007AFF; }
+        .ctrl .pm { color:#aaa; font-size:12px; white-space:nowrap; }
+        .ctrl .unit { color:#aaa; font-size:12px; }
+        .toggle { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:600; color:#555; cursor:pointer; user-select:none; }
+        .toggle input { width:16px; height:16px; accent-color:#007AFF; }
+        .ctrl.dim { opacity:.45; pointer-events:none; }
+
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 22px 0 6px; }
+        .stat { background:#f7f9fc; border-radius: 12px; padding: 14px 16px; }
+        .stat .lbl { font-size: 12px; color:#888; }
+        .stat .val { font-size: 22px; font-weight: 800; color:#1c2530; margin-top:2px; }
+        .stat .val small { font-size:13px; font-weight:700; color:#0f8a52; }
+
+        .chart-title { font-size: 17px; font-weight: 700; color:#222; margin: 18px 2px 2px; }
+        .chart-sub { font-size: 12.5px; color:#999; margin: 0 2px 12px; }
+        .legend { display:flex; flex-wrap:wrap; gap:14px; margin:0 2px 8px; font-size:12px; color:#777; }
+        .legend i { display:inline-block; vertical-align:middle; margin-right:5px; }
+        .dot { width:10px; height:10px; border-radius:50%; }
+        .sq { width:11px; height:11px; border-radius:2px; }
+        .dash { width:16px; height:0; border-top:2px dashed #c0552f; }
+        .chart-wrap { position: relative; width:100%; height: 340px; }
+        .note { margin-top: 16px; font-size: 12px; color: #888; background: #f7f9fc; border-radius: 10px; padding: 12px 14px; }
+        .note b { color: #007AFF; }
+        .warn { color:#c2710c; }
+        .footer { text-align: center; padding: 26px 24px; color: #999; font-size: 12px; }
+        .footer a { color:#007AFF; text-decoration:none; } .footer a:hover{ text-decoration:underline; }
+        .footer-contact { margin-top: 8px; font-size: 13px; }
+        @media (max-width:600px){ .header h1{font-size:22px;} .chart-wrap{height:300px;} }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>빌라 시세비교 <span style="font-size:16px;font-weight:600;opacity:0.92;">📍 화곡동</span></h1>
+        <p>국토부 실거래가 기반 · 조건(연식·면적·기간)을 바꾸면 유사매물·연식별 월별 시세가 비교됩니다</p>
+        <div class="header-links">
+            <a class="home-link" href="/">← 부동산 사이트 모음</a>
+            <a class="home-link" href="/auction/">&#129518; 경매 수익률 계산기</a>
+            <a class="home-link" href="/price/">&#128200; 빌라 시세조회</a>
+            <span class="home-link active">&#128202; 빌라 시세비교</span>
+            <a class="home-link" href="/map/">🗺️ 빌라 지도</a>
+            <a class="home-link" href="/ranking/">🏘️ 수도권 빌라 거래량</a>
+            <button type="button" class="home-link" id="shareBtn">🔗 공유하기</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div style="background:#eef5ff;border:1px solid #cfe2ff;color:#0b5cad;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:18px;">
+                📍 현재 <b>화곡동</b> 실거래가만 제공돼요. <b>지역은 순차적으로 확대</b>할 예정입니다.
+            </div>
+            <div class="controls">
+                <label class="ctrl">
+                    <span>건축연도 (중심 ± 오차)</span>
+                    <div class="row">
+                        <input type="number" id="yr" value="2001" min="1980" max="2025">
+                        <span class="pm">± <input type="number" id="yrTol" value="2" min="0" max="20" style="width:48px"> 년</span>
+                    </div>
+                </label>
+                <label class="ctrl">
+                    <span>전용면적 (중심 ± 오차)</span>
+                    <div class="row">
+                        <input type="number" id="ar" value="59" step="0.1" min="10" max="200">
+                        <span class="pm">± <input type="number" id="arTol" value="3" step="0.5" min="0" max="50" style="width:48px"> ㎡</span>
+                    </div>
+                </label>
+                <label class="ctrl" id="laBox">
+                    <span><label class="toggle" style="font-size:11.5px;color:#888;font-weight:700"><input type="checkbox" id="laOn"> 대지권 (중심 ± 오차)</label></span>
+                    <div class="row">
+                        <input type="number" id="la" value="31.85" step="0.1" min="5" max="200">
+                        <span class="pm">± <input type="number" id="laTol" value="3" step="0.5" min="0" max="50" style="width:48px"> ㎡</span>
+                    </div>
+                </label>
+                <label class="ctrl">
+                    <span>기간 시작</span>
+                    <select id="ymFrom"></select>
+                </label>
+                <label class="ctrl">
+                    <span>기간 끝</span>
+                    <select id="ymTo"></select>
+                </label>
+                <div class="ctrl">
+                    <span>옵션</span>
+                    <label class="toggle"><input type="checkbox" id="ground" checked> 지상층만 (반지하 제외)</label>
+                </div>
+            </div>
+
+            <div class="cards" id="cards"></div>
+
+            <div class="chart-title" id="cTitle">화곡동 유사 빌라 월별 시세 추세</div>
+            <div class="chart-sub" id="cSub"></div>
+            <div class="legend">
+                <span><i class="dot" style="background:#007AFF"></i>월별 중앙값</span>
+                <span><i class="dash"></i>추세선</span>
+                <span><i class="sq" style="background:#d7dce2"></i>거래 최저~최고</span>
+                <span><i class="sq" style="background:#b9d4f5"></i>거래건수(우축)</span>
+                <span><i class="dot" style="background:#ff6a3d"></i>관심 매물</span>
+            </div>
+            <div class="chart-wrap"><canvas id="chart"></canvas></div>
+
+            <div class="note" id="note"></div>
+
+            <div class="chart-title" style="margin-top:30px">연식 비교 — 신축 vs 구축 (월별 중앙값)</div>
+            <div class="chart-sub" id="cSub2"></div>
+            <div class="legend">
+                <span><i class="dot" style="background:#0f8a52"></i>준신축 (거래시점 10년 이내)</span>
+                <span><i class="dot" style="background:#007AFF"></i>구축 (11~20년)</span>
+                <span><i class="dot" style="background:#c2710c"></i>노후 (20년 초과)</span>
+                <span><i class="sq" style="background:#cdd6e0"></i>거래량(우축, 밴드별 누적)</span>
+                <span><i class="dot" style="background:#ff6a3d"></i>관심 매물</span>
+                <span style="margin-left:auto"><label class="toggle" style="font-size:12px"><input type="checkbox" id="rangeCmp" checked> 최저~최고 범위</label></span>
+            </div>
+            <div class="chart-wrap" style="height:320px"><canvas id="chart2"></canvas></div>
+            <div class="note" id="note2"></div>
+        </div>
+        <div class="footer">데이터: 국토부 실거래가 공개시스템 · 화곡동 시범 · 본 분석은 참고용이며 법적 효력이 없습니다.
+            <div class="footer-contact">사이트 추가, 기능 건의, 오류 제보 &middot; <a href="mailto:chiyohappy@gmail.com?subject=%5B%EB%B6%80%EB%8F%99%EC%82%B0%20%EC%82%AC%EC%9D%B4%ED%8A%B8%20%EB%AA%A8%EC%9D%8C%5D">chiyohappy@gmail.com</a></div>
+            <div class="footer-contact">오늘 조회수: <span id="visitor-today">-</span></div>
+            <div class="footer-contact">누적 조회수: <span id="visitor-total">-</span></div>
+        </div>
+    </div>
+    <script data-goatcounter="https://soulmeethello.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+    <script>
+    (function(){var base='https://soulmeethello.goatcounter.com/counter/TOTAL.json',today=new Date().toISOString().slice(0,10);function s(id,u){var r=new XMLHttpRequest();r.addEventListener('load',function(){try{document.getElementById(id).innerText=JSON.parse(this.responseText).count.toLocaleString();}catch(e){}});r.open('GET',u);r.send();}setTimeout(function(){s('visitor-total',base);s('visitor-today',base+'?start='+today);},1000);})();
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+    const $ = id => document.getElementById(id);
+    const won = v => (v/10000).toFixed(2) + '억';
+    const median = a => { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+    const quantile = (a,q) => { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), pos=(s.length-1)*q, b=Math.floor(pos), r=pos-b; return s[b+1]!==undefined ? s[b]+r*(s[b+1]-s[b]) : s[b]; };
+    const ymLabel = ym => `'${String(ym).slice(2,4)} ${parseInt(String(ym).slice(4,6))}월`;
+    const ymList = (from,to) => { const r=[]; let y=Math.floor(from/100),m=from%100; while(y*100+m<=to){ r.push(y*100+m); m++; if(m>12){m=1;y++;} } return r; };
+
+    let DATA=[], META={}, chart=null, chart2=null;
+
+    // 관심 매물 — 번지는 노출하지 않고 차트에만 점으로 표시 (b/ym 으로 데이터 매칭)
+    const TARGETS = [
+        { b:'350-9', ym:202310, label:'관심 매물 ①' },
+        { b:'454-1', ym:202502, label:'관심 매물 ②' },
+    ];
+
+    // 연식 비교: 면적/대지/층/기간/번지 조건은 유지하되 '건축연도' 필터는 제외하고
+    // 거래시점 기준 경과연수로 준신축/구축/노후 3밴드로 나눠 분기별 중앙값 라인.
+    function renderCompare(c){
+        const inRange = DATA.filter(r=>{
+            if(r.ym < c.from || r.ym > c.to) return false;
+            if(r.ar==null || Math.abs(r.ar - c.ar) > c.arTol) return false;
+            if(c.laOn && (r.la==null || Math.abs(r.la - c.la) > c.laTol)) return false;
+            if(c.ground && (r.fl==null || r.fl < 1)) return false;
+            if(r.yr==null) return false;
+            return true;
+        });
+        const bandOf = r => { const age = Math.floor(r.ym/100) - r.yr; return age<=10 ? '준신축' : age<=20 ? '구축' : '노후'; };
+        const bands = ['준신축','구축','노후'];
+        const colors = {'준신축':'#0f8a52','구축':'#007AFF','노후':'#c2710c'};
+
+        // 월 단위
+        const cmonths = ymList(c.from, c.to);
+
+        const fill = {'준신축':'rgba(15,138,82,0.20)','구축':'rgba(0,122,255,0.18)','노후':'rgba(194,113,12,0.18)'};
+        const ribbon = {'준신축':'rgba(15,138,82,0.12)','구축':'rgba(0,122,255,0.11)','노후':'rgba(194,113,12,0.11)'};
+        const showRange = $('rangeCmp').checked;
+        const bandStats={}; const cmpByBand={}; const lineDs=[]; const barDs=[]; const rangeDs=[]; const qTotals=cmonths.map(()=>0);
+        bands.forEach(b=>{
+            const byQ={}; cmonths.forEach(q=>byQ[q]=[]);
+            inRange.filter(r=>bandOf(r)===b).forEach(r=>{ if(byQ[r.ym]) byQ[r.ym].push(r.amt); });
+            const medQ = cmonths.map(q=> byQ[q].length ? Math.round(median(byQ[q])) : null);
+            const hiQ  = cmonths.map(q=> byQ[q].length ? Math.max(...byQ[q]) : null);
+            const loQ  = cmonths.map(q=> byQ[q].length ? Math.min(...byQ[q]) : null);
+            const cntQ = cmonths.map((q,i)=>{ qTotals[i]+=byQ[q].length; return byQ[q].length; });
+            cmpByBand[b] = {med:medQ, hi:hiQ, lo:loQ, cnt:cntQ};
+            const all = inRange.filter(r=>bandOf(r)===b).map(r=>r.amt);
+            bandStats[b] = { n: all.length, med: all.length?median(all):null, min: all.length?Math.min(...all):null, max: all.length?Math.max(...all):null };
+            if(showRange){
+                rangeDs.push({type:'line',label:b+'_hi',data:hiQ,yAxisID:'y',borderColor:'transparent',backgroundColor:ribbon[b],pointRadius:0,fill:'+1',tension:0.25,spanGaps:true,order:4});
+                rangeDs.push({type:'line',label:b+'_lo',data:loQ,yAxisID:'y',borderColor:'transparent',pointRadius:0,fill:false,tension:0.25,spanGaps:true,order:4});
+            }
+            barDs.push({type:'bar',label:b+' 거래량',data:cntQ,yAxisID:'y1',backgroundColor:fill[b],stack:'vol',order:5});
+            lineDs.push({type:'line',label:b,data:medQ,yAxisID:'y',borderColor:colors[b],backgroundColor:colors[b],borderWidth:2.5,pointRadius:3,tension:0.25,spanGaps:true,order:1});
+        });
+        const cntMax2 = Math.max(1, ...qTotals);
+        // 관심 매물 점 (월 정렬)
+        const tArr2 = cmonths.map(()=>null), tMeta2 = cmonths.map(()=>null);
+        TARGETS.forEach(t=>{
+            if(t.ym < c.from || t.ym > c.to) return;
+            const idx=cmonths.indexOf(t.ym); if(idx<0) return;
+            const r=DATA.find(x=>x.b===t.b && x.ym===t.ym);
+            if(r){ tArr2[idx]=r.amt; tMeta2[idx]={label:t.label, fl:r.fl}; }
+        });
+        const targetDs2 = {type:'line',label:'관심 매물',data:tArr2,yAxisID:'y',showLine:false,pointRadius:tArr2.map(v=>v==null?0:7),pointHoverRadius:tArr2.map(v=>v==null?0:8),borderColor:'#ff6a3d',backgroundColor:'#ff6a3d',pointBackgroundColor:'#ff6a3d',pointBorderColor:'#ff6a3d',spanGaps:false,order:0};
+        const datasets = [...rangeDs, ...barDs, ...lineDs, targetDs2];
+
+        $('cSub2').textContent = `전용 ${(c.ar-c.arTol).toFixed(0)}~${(c.ar+c.arTol).toFixed(0)}㎡`
+            + (c.laOn?` · 대지 ${(c.la-c.laTol).toFixed(0)}~${(c.la+c.laTol).toFixed(0)}㎡`:'')
+            + (c.ground?' · 지상층':'') + ` · 건축연도 무관, 거래시점 경과연수로 분류 · ${inRange.length}건`;
+
+        const d2 = { labels: cmonths.map(ymLabel), datasets };
+        const o2 = { responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false}, tooltip:{ mode:'index', intersect:false,
+                filter:item=> bands.includes(item.dataset.label) || item.dataset.label==='관심 매물',
+                itemSort:(a,b)=> (bands.indexOf(a.dataset.label)+1||9)-(bands.indexOf(b.dataset.label)+1||9),
+                callbacks:{ label:ctx=>{
+                    if(ctx.dataset.label==='관심 매물'){ if(ctx.parsed.y==null) return null; const m=tMeta2[ctx.dataIndex]||{}; return `${m.label||'관심 매물'} (${m.fl!=null?m.fl+'층':'-'}): ${won(ctx.parsed.y)}`; }
+                    const b=ctx.dataset.label, i=ctx.dataIndex, s=cmpByBand[b];
+                    if(!s || !s.cnt[i]) return null;
+                    return `${b}: 중앙 ${won(s.med[i])} · 최저~최고 ${won(s.lo[i])}~${won(s.hi[i])} · ${s.cnt[i]}건`;
+                } } } },
+            scales:{ x:{ stacked:true, ticks:{autoSkip:false,maxRotation:45,minRotation:45,font:{size:10}} },
+                     y:{ position:'left', ticks:{callback:v=>(v/10000).toFixed(1)+'억'} },
+                     y1:{ position:'right', stacked:true, min:0, max:cntMax2*3, grid:{drawOnChartArea:false}, ticks:{stepSize:Math.max(1,Math.ceil(cntMax2/4)),callback:v=>v+'건'} } } };
+        if(chart2){ chart2.data=d2; chart2.options=o2; chart2.update(); }
+        else chart2 = new Chart($('chart2'), {type:'line', data:d2, options:o2});
+
+        const fmt = b => bandStats[b].n ? `<b style="color:${colors[b]}">${b}</b> 중앙 ${won(bandStats[b].med)} (최저 ${won(bandStats[b].min)}~최고 ${won(bandStats[b].max)}, ${bandStats[b].n}건)` : `<b style="color:${colors[b]}">${b}</b> 거래없음`;
+        const ratio = (bandStats['준신축'].med && bandStats['노후'].med) ? (bandStats['준신축'].med/bandStats['노후'].med).toFixed(2) : null;
+        $('note2').innerHTML = `${fmt('준신축')} · ${fmt('구축')} · ${fmt('노후')}` + (ratio?` &nbsp;→ 준신축이 노후의 <b>${ratio}배</b>` : '');
+    }
+
+    function buildYmOptions(period){
+        const all = ymList(period[0], period[1]);
+        const opt = ym => `<option value="${ym}">${String(ym).slice(0,4)}.${String(ym).slice(4,6)}</option>`;
+        $('ymFrom').innerHTML = all.map(opt).join('');
+        $('ymTo').innerHTML = all.map(opt).join('');
+        $('ymFrom').value = all[0];
+        $('ymTo').value = all[all.length-1];
+    }
+
+    function getCfg(){
+        return {
+            yr:+$('yr').value, yrTol:+$('yrTol').value,
+            ar:+$('ar').value, arTol:+$('arTol').value,
+            laOn:$('laOn').checked, la:+$('la').value, laTol:+$('laTol').value,
+            from:+$('ymFrom').value, to:+$('ymTo').value,
+            ground:$('ground').checked,
+        };
+    }
+
+    function filterRows(c){
+        return DATA.filter(r=>{
+            if(r.ym < c.from || r.ym > c.to) return false;
+            if(r.yr==null || Math.abs(r.yr - c.yr) > c.yrTol) return false;
+            if(r.ar==null || Math.abs(r.ar - c.ar) > c.arTol) return false;
+            if(c.laOn && (r.la==null || Math.abs(r.la - c.la) > c.laTol)) return false;
+            if(c.ground && (r.fl==null || r.fl < 1)) return false;
+            return true;
+        });
+    }
+
+    function render(){
+        const c = getCfg();
+        $('laBox').classList.toggle('dim', !c.laOn);
+        const rows = filterRows(c);
+        const amts = rows.map(r=>r.amt);
+
+        // 요약
+        const med = median(amts), p25=quantile(amts,.25), p75=quantile(amts,.75);
+        $('cards').innerHTML = !amts.length ? '<div class="stat"><div class="lbl">표본</div><div class="val">0건</div></div>' :
+            `<div class="stat"><div class="lbl">기간 중앙값</div><div class="val">${won(med)}</div></div>
+             <div class="stat"><div class="lbl">일반 거래구간 (25~75%)</div><div class="val">${won(p25)}~${won(p75)}</div></div>
+             <div class="stat"><div class="lbl">표본</div><div class="val">${amts.length}건</div></div>`;
+
+        // 월별 집계
+        const months = ymList(c.from, c.to);
+        const byM = {}; months.forEach(m=>byM[m]=[]);
+        rows.forEach(r=>{ if(byM[r.ym]) byM[r.ym].push(r.amt); });
+        const labels = months.map(ymLabel);
+        const medArr = months.map(m=> byM[m].length ? Math.round(median(byM[m])) : null);
+        const loArr  = months.map(m=> byM[m].length ? Math.min(...byM[m]) : null);
+        const hiArr  = months.map(m=> byM[m].length ? Math.max(...byM[m]) : null);
+        const cntArr = months.map(m=> byM[m].length);
+        const cntMax = Math.max(1, ...cntArr);
+
+        // 추세선 (있는 점만 최소제곱)
+        const pts = medArr.map((v,i)=>v==null?null:[i,v]).filter(Boolean);
+        let trend = months.map(()=>null);
+        if(pts.length>=2){
+            const n=pts.length, sx=pts.reduce((a,p)=>a+p[0],0), sy=pts.reduce((a,p)=>a+p[1],0),
+                  sxy=pts.reduce((a,p)=>a+p[0]*p[1],0), sxx=pts.reduce((a,p)=>a+p[0]*p[0],0);
+            const slope=(n*sxy-sx*sy)/(n*sxx-sx*sx), it=(sy-slope*sx)/n;
+            trend = months.map((_,i)=> Math.round(slope*i+it));
+        }
+
+        // 관심 매물 — months 인덱스에 정렬(index 모드 툴팁 정합성 위해 배열로)
+        const targetArr = months.map(()=>null);
+        const targetMeta = months.map(()=>null);
+        TARGETS.forEach(t=>{
+            if(t.ym < c.from || t.ym > c.to) return;
+            const idx = months.indexOf(t.ym); if(idx<0) return;
+            const r = DATA.find(x=>x.b===t.b && x.ym===t.ym);
+            if(r){ targetArr[idx]=r.amt; targetMeta[idx]={label:t.label, fl:r.fl}; }
+        });
+        const targetCount = targetArr.filter(v=>v!=null).length;
+
+        // y축 범위
+        const allV = amts.length ? amts : [10000,30000];
+        const ymin = Math.floor(Math.min(...allV)/5000)*5000 - 2000;
+        const ymax = Math.ceil(Math.max(...allV)/5000)*5000 + 2000;
+
+        $('cSub').textContent = `${c.yr}년식 ±${c.yrTol} · 전용 ${(c.ar-c.arTol).toFixed(0)}~${(c.ar+c.arTol).toFixed(0)}㎡`
+            + (c.laOn?` · 대지 ${(c.la-c.laTol).toFixed(0)}~${(c.la+c.laTol).toFixed(0)}㎡`:'')
+            + (c.ground?' · 지상층':'') + ` · ${amts.length}건 (국토부 실거래가)`;
+
+        const data = { labels, datasets:[
+            {type:'bar',label:'거래건수',data:cntArr,yAxisID:'y1',backgroundColor:'rgba(0,122,255,0.18)',borderRadius:2,order:6},
+            {type:'line',label:'최고',data:hiArr,borderColor:'rgba(0,0,0,0)',backgroundColor:'rgba(150,160,175,0.16)',pointRadius:0,fill:'+1',order:5,spanGaps:true},
+            {type:'line',label:'최저',data:loArr,borderColor:'rgba(0,0,0,0)',pointRadius:0,fill:false,order:5,spanGaps:true},
+            {type:'line',label:'월별 중앙값',data:medArr,borderColor:'#007AFF',backgroundColor:'#007AFF',borderWidth:2,pointRadius:4,tension:0.25,order:1,spanGaps:true},
+            {type:'line',label:'추세선',data:trend,borderColor:'#c0552f',borderDash:[6,5],borderWidth:2,pointRadius:0,order:2,spanGaps:true},
+            {type:'line',label:'관심 매물',data:targetArr,showLine:false,pointRadius:targetArr.map(v=>v==null?0:7),pointHoverRadius:targetArr.map(v=>v==null?0:8),borderColor:'#ff6a3d',backgroundColor:'#ff6a3d',pointBackgroundColor:'#ff6a3d',pointBorderColor:'#ff6a3d',spanGaps:false,order:0},
+        ]};
+        const opts = { responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false}, tooltip:{ mode:'index', intersect:false,
+                itemSort:(a,b)=>{ const ord={'월별 중앙값':0,'최고':1,'최저':2,'거래건수':3,'관심 매물':4}; return (ord[a.dataset.label]??9)-(ord[b.dataset.label]??9); },
+                filter:item=> item.dataset.label!=='추세선' && item.parsed.y!=null,
+                callbacks:{ label:ctx=>{
+                if(ctx.dataset.label==='거래건수') return '거래건수: '+ctx.parsed.y+'건';
+                if(ctx.dataset.label==='관심 매물'){ if(ctx.parsed.y==null) return null; const m=targetMeta[ctx.dataIndex]||{}; return `${m.label||'관심 매물'} (${m.fl!=null?m.fl+'층':'-'}): ${won(ctx.parsed.y)}`; }
+                if(ctx.parsed.y==null) return null;
+                return ctx.dataset.label+': '+won(ctx.parsed.y);
+            }}}},
+            scales:{ x:{ ticks:{autoSkip:false, maxRotation:45, minRotation:45, font:{size:10}} },
+                     y:{ position:'left', min:ymin, max:ymax, ticks:{callback:v=>(v/10000).toFixed(1)+'억'} },
+                     y1:{ position:'right', min:0, max:cntMax*3, grid:{drawOnChartArea:false}, ticks:{stepSize:Math.max(1,Math.ceil(cntMax/4)),callback:v=>v+'건'} } } };
+
+        if(chart){ chart.data=data; chart.options=opts; chart.update(); }
+        else chart = new Chart($('chart'), {data, options:opts});
+
+        renderCompare(c);
+
+        // 노트
+        const tgtTxt = targetCount ? `관심 매물 <b>${targetCount}건</b> 표시됨.` : '';
+        $('note').innerHTML = amts.length
+            ? `조건에 맞는 거래 <b>${amts.length}건</b> · 중앙값 <b>${won(med)}</b> · 일반구간 ${won(p25)}~${won(p75)}. ${tgtTxt}`
+              + (amts.length<10 ? ` <span class="warn">⚠ 표본이 적어 월별 수치는 변동이 큽니다.</span>` : '')
+            : `<span class="warn">조건에 맞는 거래가 없습니다.</span> 오차범위를 넓히거나 기간을 늘려보세요.`;
+    }
+
+    // 이벤트
+    ['yr','yrTol','ar','arTol','la','laTol','ymFrom','ymTo'].forEach(id=> $(id).addEventListener('input', render));
+    ['laOn','ground','rangeCmp'].forEach(id=> $(id).addEventListener('change', render));
+
+    // 공유하기
+    (function(){
+        const btn=$('shareBtn'); if(!btn) return;
+        const SHARE_URL=location.href;
+        const SHARE_MSG='빌라 시세비교 — 국토부 실거래가 기반 유사매물·연식별 월별 시세 비교';
+        btn.addEventListener('click', async ()=>{
+            const orig=btn.textContent;
+            try{
+                if(navigator.share){ await navigator.share({title:'빌라 시세비교', text:SHARE_MSG, url:SHARE_URL}); return; }
+                await navigator.clipboard.writeText(SHARE_MSG+'\n'+SHARE_URL);
+                btn.textContent='✓ 링크 복사됨'; setTimeout(()=>btn.textContent=orig,1500);
+            }catch(e){ /* 사용자 취소 등 무시 */ }
+        });
+    })();
+
+    fetch('/data/hwagok_villa.json')
+        .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
+        .then(j=>{ META=j.meta; DATA=j.rows; buildYmOptions(META.period); render(); })
+        .catch(e=>{ $('note').innerHTML = '<span class="warn">데이터를 불러오지 못했습니다 ('+e.message+'). data/hwagok_villa.json 확인.</span>'; });
+    </script>
+</body>
+</html>
