@@ -603,15 +603,28 @@ function showJibunSummary(){
   if(!jb || !ctx || kind==='gap'){ box.style.display='none'; return; }
   const c=KCFG[kind], KNAME={sale:'매매',jeonse:'전세',wolse:'월세'};
   const hits=sourceRaw().filter(d=>d.동===ctx.dong && d.번지===jb);
-  if(!hits.length){ box.style.display='none'; return; }
-  const recent=[...hits].sort((a,b)=>a.계약<b.계약?1:-1)[0];
-  const amts=hits.map(d=>c.amt(d)).filter(v=>v!=null);
-  box.innerHTML=`<div style="background:var(--card);border:1.5px solid var(--accent);border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.7;">
-    📍 <b>${ctx.dong} ${jb}</b>${recent.건물명?` · ${recent.건물명}`:''} — 이 번지 <b>${KNAME[kind]} ${hits.length}건</b><br>
-    최근 거래 <b>${recent.계약}</b> · <b>${fmtEok(c.amt(recent))}</b>${recent.전용면적?` · 전용 ${recent.전용면적}㎡`:''}${recent.층!=null?` · ${recent.층}층`:''}${recent.건축년도?` · ${recent.건축년도}년식`:''}
-    · 중위 <b>${fmtEok(Math.round(median(amts)))}</b>
-  </div>`;
-  box.style.display='';
+  if(hits.length){
+    const recent=[...hits].sort((a,b)=>a.계약<b.계약?1:-1)[0];
+    const amts=hits.map(d=>c.amt(d)).filter(v=>v!=null);
+    box.innerHTML=`<div style="background:var(--card);border:1.5px solid var(--accent);border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.7;">
+      📍 <b>${ctx.dong} ${jb}</b>${recent.건물명?` · ${recent.건물명}`:''} — 이 번지 <b>${KNAME[kind]} ${hits.length}건</b><br>
+      최근 거래 <b>${recent.계약}</b> · <b>${fmtEok(c.amt(recent))}</b>${recent.전용면적?` · 전용 ${recent.전용면적}㎡`:''}${recent.층!=null?` · ${recent.층}층`:''}${recent.건축년도?` · ${recent.건축년도}년식`:''}
+      · 중위 <b>${fmtEok(Math.round(median(amts)))}</b>
+    </div>`;
+    box.style.display=''; return;
+  }
+  // 거래 없는 번지 → 면적 × 동네 중위 평단가로 추정 (매매/전세)
+  const area=pn($('f_area').value);
+  const pps=lastDeals.map(d=>d._pp).filter(v=>v!=null);
+  if(c.perPyeong && area>0 && pps.length){
+    const py=+(area*PY).toFixed(1), mid=Math.round(median(pps)), est=Math.round(mid*area*PY);
+    box.innerHTML=`<div style="background:var(--card);border:1.5px dashed var(--accent);border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.7;">
+      📍 <b>${ctx.dong} ${jb}</b> — 이 번지 직접 거래는 없어요 · <span style="color:var(--sub)">추정치</span><br>
+      전용 ${area}㎡(${py}평) × 동네 중위 <b>${mid.toLocaleString()}만/평</b> ≈ <b>${fmtEok(est)}</b> <span style="color:var(--sub)">(${KNAME[kind]} 유사 ${pps.length}건 기준)</span>
+    </div>`;
+    box.style.display=''; return;
+  }
+  box.style.display='none';
 }
 
 function setStatus(t, err){ const el=$('status'); el.innerHTML=t; el.className='status'+(err?' err':''); }
