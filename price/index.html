@@ -602,19 +602,41 @@ function showJibunSummary(){
   const box=$('jibunBox'); const jb=jibunOf($('q_addr').value);
   if(!jb || !ctx || kind==='gap'){ box.style.display='none'; return; }
   const c=KCFG[kind], KNAME={sale:'매매',jeonse:'전세',wolse:'월세'};
+  const area=pn($('f_area').value), aTol=pn($('f_areaTol').value)||0;
   const hits=sourceRaw().filter(d=>d.동===ctx.dong && d.번지===jb);
   if(hits.length){
-    const recent=[...hits].sort((a,b)=>a.계약<b.계약?1:-1)[0];
-    const amts=hits.map(d=>c.amt(d)).filter(v=>v!=null);
-    box.innerHTML=`<div style="background:var(--card);border:1.5px solid var(--accent);border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.7;">
-      📍 <b>${ctx.dong} ${jb}</b>${recent.건물명?` · ${recent.건물명}`:''} — 이 번지 <b>${KNAME[kind]} ${hits.length}건</b><br>
-      최근 거래 <b>${recent.계약}</b> · <b>${fmtEok(c.amt(recent))}</b>${recent.전용면적?` · 전용 ${recent.전용면적}㎡`:''}${recent.층!=null?` · ${recent.층}층`:''}${recent.건축년도?` · ${recent.건축년도}년식`:''}
-      · 중위 <b>${fmtEok(Math.round(median(amts)))}</b>
+    const bn=(hits.find(h=>h.건물명)||{}).건물명||'';
+    // 전용면적별 그룹 (평형대)
+    const groups={};
+    hits.forEach(d=>{ const k=d.전용면적!=null?d.전용면적.toFixed(2):'?'; (groups[k]=groups[k]||[]).push(d); });
+    const rows=Object.entries(groups).map(([k,arr])=>{
+      const ar=parseFloat(k), amts=arr.map(d=>c.amt(d)).filter(v=>v!=null);
+      const recent=[...arr].sort((a,b)=>a.계약<b.계약?1:-1)[0];
+      return { ar, py:isNaN(ar)?null:+(ar*PY).toFixed(1), n:arr.length, mid:amts.length?Math.round(median(amts)):null,
+               recent, match:!isNaN(ar)&&area>0&&Math.abs(ar-area)<=aTol };
+    }).sort((a,b)=>(b.match-a.match)||(b.n-a.n)||(a.ar-b.ar));
+    const anyMatch=rows.some(r=>r.match);
+    // 선택 면적에 맞는 평형이 이 건물에 없으면 동네 평단가로 추정
+    let est='';
+    if(area>0 && !anyMatch){
+      const pps0=lastDeals.map(d=>d._pp).filter(v=>v!=null);
+      if(c.perPyeong && pps0.length){
+        const m0=Math.round(median(pps0)), e0=Math.round(m0*area*PY);
+        est=`<div style="margin-top:3px;color:var(--sub)">선택 <b>${area}±${aTol}㎡</b>는 이 건물에 거래 없음 · 동네 중위 ${m0.toLocaleString()}만/평 기준 <b style="color:var(--accent)">추정 ≈ ${fmtEok(e0)}</b></div>`;
+      } else {
+        est=`<div style="margin-top:3px;color:var(--sub)">선택 <b>${area}±${aTol}㎡</b>는 이 건물에 거래 없음</div>`;
+      }
+    }
+    const list=rows.map(r=>`<div style="margin-top:3px${r.match?';color:var(--accent);font-weight:600':''}">${r.match?'▸':'·'} 전용 ${isNaN(r.ar)?'?':r.ar}㎡${r.py?`(${r.py}평)`:''} · ${r.n}건 · 중위 ${r.mid!=null?fmtEok(r.mid):'–'} · 최근 ${r.recent.계약}</div>`).join('');
+    box.innerHTML=`<div style="background:var(--card);border:1.5px solid var(--accent);border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.6;">
+      📍 <b>${ctx.dong} ${jb}</b>${bn?` · ${bn}`:''} — 이 번지 <b>${KNAME[kind]} ${hits.length}건</b>
+      ${est}
+      <div style="margin-top:7px;font-size:12px;color:var(--sub)">평형별 (▸ 선택 면적)</div>
+      ${list}
     </div>`;
     box.style.display=''; return;
   }
   // 거래 없는 번지 → 면적 × 동네 중위 평단가로 추정 (매매/전세)
-  const area=pn($('f_area').value);
   const pps=lastDeals.map(d=>d._pp).filter(v=>v!=null);
   if(c.perPyeong && area>0 && pps.length){
     const py=+(area*PY).toFixed(1), mid=Math.round(median(pps)), est=Math.round(mid*area*PY);
