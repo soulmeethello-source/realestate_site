@@ -117,9 +117,9 @@ td.l,th.l{ text-align:left; }
         </span>
         <span class="lbl" style="margin-left:6px;">기간</span>
         <select id="q_years">
-          <option value="1">최근 1년</option>
+          <option value="1" selected>최근 1년</option>
           <option value="2">최근 2년</option>
-          <option value="3" selected>최근 3년</option>
+          <option value="3">최근 3년</option>
           <option value="5">최근 5년</option>
         </select>
       </div>
@@ -134,14 +134,14 @@ td.l,th.l{ text-align:left; }
       </div>
       <div class="row" style="gap:6px;">
         <span class="lbl">전용면적</span>
-        <input type="text" id="f_area" inputmode="decimal" placeholder="중심 ㎡" style="width:84px;padding:8px 10px;">
+        <input type="text" id="f_area" inputmode="decimal" value="59" placeholder="중심 ㎡" style="width:84px;padding:8px 10px;">
         <span class="lbl">±</span>
-        <input type="text" id="f_areaTol" inputmode="decimal" placeholder="오차" style="width:60px;padding:8px 10px;">
+        <input type="text" id="f_areaTol" inputmode="decimal" value="3" placeholder="오차" style="width:60px;padding:8px 10px;">㎡
         <span class="lbl" style="margin-left:12px;">건축연도</span>
-        <input type="text" id="f_yr" inputmode="numeric" placeholder="중심" style="width:78px;padding:8px 10px;">
+        <input type="text" id="f_yr" inputmode="numeric" value="2001" placeholder="중심" style="width:78px;padding:8px 10px;">
         <span class="lbl">±</span>
-        <input type="text" id="f_yrTol" inputmode="numeric" placeholder="오차" style="width:60px;padding:8px 10px;">
-        <span class="lbl" style="color:#aaa;">(선택)</span>
+        <input type="text" id="f_yrTol" inputmode="numeric" value="2" placeholder="오차" style="width:60px;padding:8px 10px;">년
+        <span class="lbl" style="color:#aaa;">(비우면 전체)</span>
       </div>
     </div>
     <div class="status" id="status">주소를 입력하고 <b>조회</b>를 누르세요.</div>
