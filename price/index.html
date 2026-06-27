@@ -603,15 +603,16 @@ async function renderGap(saleD, jeonD){
   // 매매 기준: 매매 실거래 있는 건물이 모집단
   const withSale=Object.values(m).filter(b=>b.s.length);
   if(!withSale.length){ setStatus(`${scopeTxt} — 매매 실거래가 없어 갭 계산 불가. 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
-  // 실측 전세가율(전세/매매) — 공시가 없을 때 fallback
-  const matched=withSale.filter(b=>b.j.length).map(b=>({sm:median(b.s), jm:median(b.j)}));
-  const avgRate=matched.length ? median(matched.map(r=>r.jm/r.sm)) : null;   // 0~1
   // 전세 없는 건물 → 공시가×126%(안전 전세상한) 조회 (같은 법정동만)
   const ac=pn($('f_area').value), at=pn($('f_areaTol').value)||0;
   const estB=withSale.filter(b=>!b.j.length);
+  let noData=0;
   if(estB.length){
+    // 기준연도 1회 선확정 (동시 호출 중복·rate-limit 완화)
+    const seed=estB.find(b=>b.동===ctx.dong && pnuOf(b.번지));
+    if(seed){ setStatus('공시가 조회 중…'); await fetchGongsi(pnuOf(seed.번지)); }
     let done=0;
-    await pool(estB, 8, async b=>{
+    await pool(estB, 4, async b=>{
       b._safe=null;
       if(b.동===ctx.dong){
         const pnu=pnuOf(b.번지);
@@ -628,16 +629,17 @@ async function renderGap(saleD, jeonD){
     const sm=median(b.s), t=b.sd.length?median(b.sd):null;
     if(b.j.length){ const jm=median(b.j); return {건물명:b.건물명||'–', 동:b.동, 전용:aMed(b), 매매:sm, 전세:jm, 갭:sm-jm, 율:Math.round(jm/sm*100), n:b.s.length+b.j.length, t, 추정:false, 타입:'real'}; }
     if(b._safe!=null){ const jm=b._safe; return {건물명:b.건물명||'–', 동:b.동, 전용:aMed(b), 매매:sm, 전세:jm, 갭:sm-jm, 율:Math.round(jm/sm*100), n:b.s.length, t, 추정:true, 타입:'공시', 공시:b._gman}; }
-    if(avgRate!=null){ const jm=Math.round(sm*avgRate); return {건물명:b.건물명||'–', 동:b.동, 전용:aMed(b), 매매:sm, 전세:jm, 갭:sm-jm, 율:Math.round(avgRate*100), n:b.s.length, t, 추정:true, 타입:'율'}; }
-    return null;
+    noData++; return null;   // 전세도 공시도 없음 → 제외 (이상한 추정 안 함)
   }).filter(Boolean).sort((a,b)=>b.갭-a.갭);
+  if(!rows.length){ setStatus(`${scopeTxt} — 갭 낼 건물이 없어요(전세·공시 모두 없음). 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
   const realRows=rows.filter(r=>!r.추정);
-  const gN=rows.filter(r=>r.타입==='공시').length, rN=rows.filter(r=>r.타입==='율').length;
-  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · 갭 ${rows.length}곳 (실측 ${realRows.length}${gN?` · 공시126% ${gN}`:''}${rN?` · 율추정 ${rN}`:''})${filterLabel()}`);
+  const gN=rows.length-realRows.length;
+  const realRates=realRows.map(r=>r.율).filter(v=>v!=null && v<=120);   // 이상치(>120%) 제외
+  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · 갭 ${rows.length}곳 (실측 ${realRows.length}${gN?` · 공시126% ${gN}`:''})${noData?` · 공시없음 ${noData} 제외`:''}${filterLabel()}`);
   $('stats').innerHTML=[
     ['갭 건물수', rows.length+'곳', false],
     ['중위 갭', fmtEok(Math.round(median(rows.map(r=>r.갭)))), true],
-    ['평균 전세가율(실측)', avgRate!=null?Math.round(avgRate*100)+'%':'–', false],
+    ['평균 전세가율(실측)', realRates.length?Math.round(median(realRates))+'%':'–', false],
     ['중위 매매가', fmtEok(Math.round(median(rows.map(r=>r.매매)))), false],
   ].map(s=>`<div class="stat"><div class="v ${s[2]?'green':''}">${s[1]}</div><div class="k">${s[0]}</div></div>`).join('');
   $('split').style.display='flex';
@@ -649,9 +651,8 @@ async function renderGap(saleD, jeonD){
   const MAX=400, shown=rows.slice(0,MAX);
   $('tblCount').textContent = rows.length>MAX?`표시 ${MAX}/총 ${rows.length}곳`:`${rows.length}곳`;
   const badge=r=> r.타입==='real'?' <span style="font-size:10.5px;color:var(--accent2);font-weight:700">실측</span>'
-                : r.타입==='공시'?' <span style="font-size:10.5px;color:#c0883a;font-weight:700">공시126%</span>'
-                : ' <span style="font-size:10.5px;color:#aaa;font-weight:700">율추정</span>';
-  gb.innerHTML=`<table><thead><tr><th class="l">건물</th><th class="l">동</th><th>전용</th><th>매매중위</th><th>전세(상한)</th><th>갭</th><th>전세가율</th><th>건수</th></tr></thead><tbody>${shown.map(r=>`<tr${r.추정?' style="color:var(--sub)"':''}><td class="l">${r.건물명}${badge(r)}</td><td class="l">${r.동}</td><td>${r.전용!=null?r.전용+'㎡':'–'}</td><td>${fmtEok(r.매매)}</td><td>${r.추정?'~':''}${fmtEok(r.전세)}</td><td><b>${r.추정?'~':''}${fmtEok(r.갭)}</b></td><td>${r.율!=null?r.율+'%':'–'}</td><td>${r.n}</td></tr>`).join('')}</tbody></table><div class="hint" style="padding:8px 4px 2px;line-height:1.7;">갭 = 매매 − 전세 · <b style="color:var(--accent2)">실측</b> 전세 실거래 있음 → 매매−<u>실제전세</u> · <b style="color:#c0883a">공시126%</b> 전세 없음 → 매매−<u>공시가×126%</u>(안전상한)${rN?` · <b>율추정</b> 매매×평균전세가율(${avgRate!=null?Math.round(avgRate*100):'–'}%)`:''}</div>`;
+                : ' <span style="font-size:10.5px;color:#c0883a;font-weight:700">공시126%</span>';
+  gb.innerHTML=`<table><thead><tr><th class="l">건물</th><th class="l">동</th><th>전용</th><th>매매중위</th><th>전세(상한)</th><th>갭</th><th>전세가율</th><th>건수</th></tr></thead><tbody>${shown.map(r=>`<tr${r.추정?' style="color:var(--sub)"':''}><td class="l">${r.건물명}${badge(r)}</td><td class="l">${r.동}</td><td>${r.전용!=null?r.전용+'㎡':'–'}</td><td>${fmtEok(r.매매)}</td><td>${r.추정?'~':''}${fmtEok(r.전세)}</td><td><b>${r.추정?'~':''}${fmtEok(r.갭)}</b></td><td>${r.율!=null?r.율+'%':'–'}</td><td>${r.n}</td></tr>`).join('')}</tbody></table><div class="hint" style="padding:8px 4px 2px;line-height:1.7;">갭 = 매매 − 전세 · <b style="color:var(--accent2)">실측</b> 전세 실거래 있음 → 매매−<u>실제전세</u> · <b style="color:#c0883a">공시126%</b> 전세 없음 → 매매−<u>공시가×126%</u>(안전상한)${noData?` · 공시 없는 ${noData}곳 제외`:''}</div>`;
   lastDeals=[]; renderMap(); showJibunSummary();
 }
 
@@ -723,15 +724,26 @@ function pnuOf(jb){
   const bon=String(m[1]).padStart(4,'0').slice(-4), bu=String(m[2]||'0').padStart(4,'0').slice(-4);
   return ctx.lawd10.slice(0,10)+'1'+bon+bu;   // 11번째 자리 1=일반(토지)
 }
+async function gongsiCall(pnu, year){   // {ok, items} — 일시 실패 시 1회 재시도
+  for(let a=0;a<2;a++){
+    try{ const r=await fetch(`${PROXY}/api/gongsi?pnu=${pnu}&year=${year}`); const j=await r.json();
+      if(j.ok) return {ok:true, items:j.items||[]};
+    }catch(e){}
+  }
+  return {ok:false, items:[]};
+}
 async function fetchGongsi(pnu){
   if(gongsiCache[pnu]) return gongsiCache[pnu];
   const years = gYear ? [gYear] : G_CANDIDATES;
+  let sawErr=false;
   for(const y of years){
-    try{ const r=await fetch(`${PROXY}/api/gongsi?pnu=${pnu}&year=${y}`); const j=await r.json();
-      if(j.items && j.items.length){ gYear=y; return (gongsiCache[pnu]={year:y, items:j.items}); }
-    }catch(e){}
+    const res=await gongsiCall(pnu, y);
+    if(!res.ok){ sawErr=true; continue; }
+    if(res.items.length){ gYear=y; return (gongsiCache[pnu]={year:y, items:res.items}); }
   }
-  return (gongsiCache[pnu]={year:gYear||G_CANDIDATES[0], items:[]});
+  const out={year:gYear||G_CANDIDATES[0], items:[]};
+  if(!sawErr) gongsiCache[pnu]=out;   // 진짜 0건이면 캐시 / 에러였으면 캐시 안 함(재시도 여지)
+  return out;
 }
 // 번지 카드에 공시가 + ×126%(전세 안전상한) 라인 추가
 async function appendGongsi(jb){
