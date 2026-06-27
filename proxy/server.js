@@ -64,6 +64,16 @@ function mapTrade(it) {
     번지: it.jibun || '', sggCd: it.sggCd || '',
   };
 }
+// 전월세 item → 깔끔한 스키마 (월세 0 = 전세)
+function mapRent(it) {
+  return {
+    동: it.umdNm || '', 건물명: it.mhouseNm || '', 유형: it.houseType || '',
+    전용면적: num(it.excluUseAr), 보증금: num(it.deposit), 월세: num(it.monthlyRent),
+    층: num(it.floor), 건축년도: num(it.buildYear),
+    계약: `${it.dealYear}-${String(it.dealMonth).padStart(2, '0')}-${String(it.dealDay).padStart(2, '0')}`,
+    번지: it.jibun || '', sggCd: it.sggCd || '',
+  };
+}
 
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -89,7 +99,7 @@ const server = http.createServer(async (req, res) => {
       const code = tagVal(xml, 'resultCode');
       if (code && code !== '000') { send(502, { error: 'API 오류: ' + tagVal(xml, 'resultMsg'), resultCode: code }); return; }
       const raw = parseItems(xml);
-      const items = kind === 'trade' ? raw.map(mapTrade) : raw;
+      const items = kind === 'trade' ? raw.map(mapTrade) : raw.map(mapRent);
       send(200, { ok: true, kind, lawd, ym, count: items.length, total: num(tagVal(xml, 'totalCount')), items });
     } catch (e) {
       send(502, { error: '업스트림 호출 실패: ' + String(e) });

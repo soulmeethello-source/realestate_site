@@ -123,6 +123,15 @@ td.l,th.l{ text-align:left; }
           <option value="5">최근 5년</option>
         </select>
       </div>
+      <div class="row">
+        <span class="lbl">거래유형</span>
+        <span class="seg" id="seg_kind">
+          <button data-k="sale" class="on">매매</button>
+          <button data-k="jeonse">전세</button>
+          <button data-k="wolse">월세</button>
+          <button data-k="gap">갭(매매−전세)</button>
+        </span>
+      </div>
     </div>
     <div class="status" id="status">주소를 입력하고 <b>조회</b>를 누르세요.</div>
     <div class="warn" id="proxyWarn" style="display:none;">
@@ -137,7 +146,7 @@ td.l,th.l{ text-align:left; }
     <div class="stats" id="stats"></div>
     <div class="chart-wrap" style="margin-top:16px;">
       <svg class="chart" id="chart" viewBox="0 0 900 340" preserveAspectRatio="xMidYMid meet"></svg>
-      <div class="chart-legend">● 개별 거래 평단가(만원/평) · ━ 분기 중위값 · 가로축=계약월</div>
+      <div class="chart-legend" id="chartLegend">● 개별 거래 평단가(만원/평) · ━ 분기 중위값 · 가로축=계약월</div>
     </div>
   </div>
 
@@ -155,14 +164,15 @@ td.l,th.l{ text-align:left; }
           <th data-k="전용면적">전용(㎡)</th>
           <th data-k="평">평</th>
           <th data-k="층">층</th>
-          <th data-k="금액만원">거래가</th>
-          <th data-k="평단가">평단가</th>
+          <th data-k="_amt" id="thAmt">거래가</th>
+          <th data-k="_pp" id="thPp">평단가</th>
           <th data-k="건축년도">건축</th>
           <th data-k="거리" id="thDist" style="display:none;">거리</th>
         </tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
+    <div id="gapBox" style="display:none;"></div>
   </div>
    </div><!-- /left -->
    <div class="right">
@@ -211,8 +221,16 @@ const $ = id => document.getElementById(id);
 const PY = 0.3025;                       // ㎡ → 평
 let geocoder = null;
 let scope = 'dong';
+let kind = 'sale';                       // sale | jeonse | wolse | gap
+let rawCache = {};                       // {sale:[...], rent:[...]} — 주소별 캐시
 let lastRaw = [], lastDeals = [];
 let ctx = null, center = null;           // ctx={sido,sigungu,dong,lawd}
+// 거래유형 설정
+const KCFG = {
+  sale:   { ep:'/api/rh',      raw:'sale', amt:d=>d.금액만원, perPyeong:true,  amtLabel:'거래가', ppLabel:'평단가', midLabel:'중위 평단가', legend:'개별 거래 평단가(만원/평)' },
+  jeonse: { ep:'/api/rh-rent', raw:'rent', amt:d=>d.보증금,   perPyeong:true,  amtLabel:'보증금', ppLabel:'평단가', midLabel:'중위 보증금평단가', legend:'전세 보증금 평단가(만원/평)' },
+  wolse:  { ep:'/api/rh-rent', raw:'rent', amt:d=>d.월세,     perPyeong:false, amtLabel:'월세',   ppLabel:'보증금', midLabel:'중위 월세', legend:'월세(만원)' },
+};
 const geoCache = new Map();              // 주소 → {lat,lng}|null
 
 // ---- 카카오 지오코더 ----
@@ -252,13 +270,13 @@ const fmtEok = won => won>=10000 ? (won/10000).toFixed(won>=100000?0:1).replace(
 const median = arr => { if(!arr.length) return null; const s=[...arr].sort((a,b)=>a-b), m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; };
 
 // ---- 월별 실거래 수집 (동시 6) ----
-async function fetchMonths(lawd, months, onProg){
+async function fetchMonths(lawd, months, ep, onProg){
   const yms=lastMonths(months), all=[]; let done=0, i=0; let proxyDown=false;
   async function worker(){
     while(i<yms.length){
       const ym=yms[i++];
       try{
-        const r=await fetch(`${PROXY}/api/rh?lawd=${lawd}&ym=${ym}&rows=1000`);
+        const r=await fetch(`${PROXY}${ep}?lawd=${lawd}&ym=${ym}&rows=1000`);
         const j=await r.json();
         if(Array.isArray(j.items)) all.push(...j.items);
       }catch(e){ proxyDown=true; }
@@ -290,10 +308,13 @@ async function applyRadius(deals, radius, onProg){
 
 // ---- 파생값 ----
 function enrich(deals){
+  const c=KCFG[kind];
   return deals.map(d=>{
     const py = d.전용면적>0 ? d.전용면적*PY : null;
-    const pp = (py && d.금액만원) ? Math.round(d.금액만원/py) : null;   // 평단가 만원/평
-    return {...d, 평: py?+py.toFixed(1):null, 평단가:pp};
+    const amt = c.amt(d);
+    const pp = (c.perPyeong && py && amt) ? Math.round(amt/py) : null;   // 평단가
+    const y = c.perPyeong ? pp : amt;                                    // 차트 y값
+    return {...d, 평: py?+py.toFixed(1):null, _amt:amt, _pp:pp, _y:y};
   });
 }
 
@@ -311,28 +332,46 @@ async function run(){
   ctx={ sido:a.region_1depth_name, sigungu:a.region_2depth_name, dong:a.region_3depth_name, lawd:(a.b_code||'').slice(0,5) };
   if(!ctx.lawd){ setStatus('법정동 코드를 얻지 못했어요.', true); $('q_run').disabled=false; return; }
 
-  const years=+$('q_years').value, months=years*12;
-  setStatus(`${ctx.sido} ${ctx.sigungu} 실거래 불러오는 중… (0/${months}개월)`);
-  let raw;
-  try{ raw = await fetchMonths(ctx.lawd, months, (d,t)=>setStatus(`${ctx.sigungu} 실거래 불러오는 중… (${d}/${t}개월)`)); }
+  rawCache = {};                          // 새 주소 → 캐시 초기화
+  try{ await ensureRaw(); }
   catch(e){ setStatus('프록시 연결 실패.', true); $('proxyWarn').style.display='block'; $('q_run').disabled=false; return; }
-  lastRaw = raw.filter(d=>d.금액만원>0 && !d.해제);     // 해제(취소) 거래 제외
-
   await applyScope();
   $('q_run').disabled=false;
 }
 
+// 거래유형에 필요한 원천(매매/전월세) 로드 — 캐시
+async function loadRaw(which){
+  if(rawCache[which]) return;
+  const years=+$('q_years').value, months=years*12;
+  const ep = which==='sale' ? '/api/rh' : '/api/rh-rent';
+  const lab = which==='sale' ? '매매' : '전월세';
+  const raw = await fetchMonths(ctx.lawd, months, ep, (d,t)=>setStatus(`${ctx.sigungu} ${lab} 불러오는 중… (${d}/${t}개월)`));
+  rawCache[which] = which==='sale' ? raw.filter(d=>d.금액만원>0 && !d.해제) : raw.filter(d=>d.보증금>0);
+}
+async function ensureRaw(){
+  if(kind==='gap'){ await loadRaw('sale'); await loadRaw('rent'); }
+  else { await loadRaw(KCFG[kind].raw); }
+}
+function sourceRaw(){
+  const c=KCFG[kind]; let arr=(c.raw==='sale'?rawCache.sale:rawCache.rent)||[];
+  if(kind==='jeonse') arr=arr.filter(d=>d.월세===0);
+  if(kind==='wolse')  arr=arr.filter(d=>d.월세>0);
+  return arr;
+}
+
 // ---- 범위(법정동/반경) 적용 ----
 async function applyScope(){
-  if(!lastRaw.length){ setStatus('해당 기간 실거래가 없습니다.', true); $('split').style.display='none'; return; }
+  if(kind==='gap'){ await applyGap(); return; }
+  const src = sourceRaw();
+  if(!src.length){ setStatus('해당 기간 실거래가 없습니다.', true); $('split').style.display='none'; return; }
   let deals;
   if(scope==='dong'){
-    deals = lastRaw.filter(d=>d.동===ctx.dong);
+    deals = src.filter(d=>d.동===ctx.dong);
     $('thDist').style.display='none';
   } else {
     const radius=+scope;
     setStatus(`반경 ${radius>=1000?radius/1000+'km':radius+'m'} 건물 좌표 변환 중…`);
-    deals = await applyRadius(lastRaw, radius, (d,t)=>setStatus(`건물 좌표 변환 중… (${d}/${t})`));
+    deals = await applyRadius(src, radius, (d,t)=>setStatus(`건물 좌표 변환 중… (${d}/${t})`));
     $('thDist').style.display='';
   }
   lastDeals = enrich(deals);
@@ -345,24 +384,30 @@ function render(){
   const deals=lastDeals;
   const scopeTxt = scope==='dong' ? `${ctx.dong} (법정동)` : `반경 ${(+scope)>=1000?(+scope)/1000+'km':scope+'m'}`;
   if(!deals.length){ setStatus(`${scopeTxt} — 실거래 0건. 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
-  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · 실거래 ${deals.length}건`);
+  const c=KCFG[kind], KNAME={sale:'매매',jeonse:'전세',wolse:'월세'};
+  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · ${KNAME[kind]} ${deals.length}건`);
 
   // 통계
-  const pps=deals.map(d=>d.평단가).filter(Boolean);
+  const ys=deals.map(d=>d._y).filter(v=>v!=null);
   const ars=deals.map(d=>d.전용면적).filter(Boolean);
-  const amts=deals.map(d=>d.금액만원).filter(Boolean);
-  const recent=[...deals].sort((a,b)=>a.계약<b.계약?1:-1)[0];
+  const amts=deals.map(d=>d._amt).filter(v=>v!=null);
+  const midUnit = c.perPyeong ? '만/평' : '만';
+  const amt2 = kind==='wolse' ? deals.map(d=>d.보증금).filter(v=>v!=null) : amts;
+  const amt2Label = kind==='wolse' ? '중위 보증금' : '중위 '+c.amtLabel;
   $('stats').innerHTML = [
     ['거래건수', deals.length+'건', false],
-    ['중위 평단가', median(pps)?median(pps).toLocaleString()+'만/평':'–', true],
-    ['중위 거래가', median(amts)?fmtEok(median(amts)):'–', false],
+    [c.midLabel, median(ys)!=null?Math.round(median(ys)).toLocaleString()+midUnit:'–', true],
+    [amt2Label, median(amt2)!=null?fmtEok(Math.round(median(amt2))):'–', false],
     ['평균 전용', ars.length?(ars.reduce((s,v)=>s+v,0)/ars.length).toFixed(1)+'㎡':'–', false],
   ].map(s=>`<div class="stat"><div class="v ${s[2]?'green':''}">${s[1]}</div><div class="k">${s[0]}</div></div>`).join('');
   $('split').style.display='flex';
+  $('chartLegend').textContent=`● 개별 거래 ${c.legend} · ━ 분기 중위값 · 가로축=계약월`;
+  $('thAmt').textContent=c.amtLabel; $('thPp').textContent=(kind==='wolse'?'보증금':'평단가');
+  document.querySelector('.tbl-scroll').style.display=''; const gb=$('gapBox'); if(gb) gb.style.display='none';
 
   drawChart(deals);
   renderTable();
-  $('tblTitle').textContent=`실거래 내역 — ${scopeTxt}`;
+  $('tblTitle').textContent=`${KNAME[kind]} 실거래 내역 — ${scopeTxt}`;
   renderMap();
 }
 
@@ -381,8 +426,8 @@ function renderTable(){
     <td>${d.전용면적??'–'}</td>
     <td>${d.평??'–'}</td>
     <td>${d.층??'–'}</td>
-    <td>${d.금액만원?fmtEok(d.금액만원):'–'}</td>
-    <td>${d.평단가?d.평단가.toLocaleString()+'만':'–'}</td>
+    <td>${d._amt!=null?fmtEok(d._amt):'–'}</td>
+    <td>${kind==='wolse' ? (d.보증금!=null?fmtEok(d.보증금):'–') : (d._pp?d._pp.toLocaleString()+'만':'–')}</td>
     <td>${d.건축년도??'–'}</td>
     <td style="${scope==='dong'?'display:none':''}">${d.거리!=null?d.거리+'m':'–'}</td>
   </tr>`).join('');
@@ -394,9 +439,9 @@ document.querySelectorAll('th[data-k]').forEach(th=>th.addEventListener('click',
 // ---- SVG 차트 (평단가 scatter + 분기 중위 line) ----
 function drawChart(deals){
   const W=900,H=340, padL=58,padR=16,padT=16,padB=34;
-  const pts=deals.filter(d=>d.평단가 && d.계약).map(d=>({t:new Date(d.계약).getTime(), y:d.평단가, q:d.계약.slice(0,7)}));
+  const pts=deals.filter(d=>d._y && d.계약).map(d=>({t:new Date(d.계약).getTime(), y:d._y, q:d.계약.slice(0,7)}));
   const svg=$('chart');
-  if(!pts.length){ svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--sub)">표시할 평단가 데이터가 없습니다</text>`; return; }
+  if(!pts.length){ svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--sub)">표시할 데이터가 없습니다</text>`; return; }
   const ts=pts.map(p=>p.t), ys=pts.map(p=>p.y);
   let tMin=Math.min(...ts), tMax=Math.max(...ts); if(tMin===tMax){tMin-=2.6e9;tMax+=2.6e9;}
   let yMin=Math.min(...ys), yMax=Math.max(...ys); const yPad=(yMax-yMin)*0.1||yMax*0.1||100; yMin=Math.max(0,yMin-yPad); yMax=yMax+yPad;
@@ -452,7 +497,7 @@ async function renderMap(){
   const bounds=new kakao.maps.LatLngBounds(); bounds.extend(C);
   let shown=0;
   builds.forEach(b=>{ if(!b.ll) return; const pos=new kakao.maps.LatLng(b.ll.lat, b.ll.lng);
-    const amt=median(b.deals.map(d=>d.금액만원).filter(Boolean));
+    const amt=median(b.deals.map(d=>d._amt).filter(v=>v!=null));
     const cnt=b.deals.length>1?`<span class="cnt">${b.deals.length}</span>`:'';
     const ov=new kakao.maps.CustomOverlay({position:pos, content:`<div class="pin">${fmtEok(amt)}${cnt}</div>`, yAnchor:1, clickable:true});
     ov.setMap(map); overlays.push(ov); bounds.extend(pos); shown++;
@@ -464,12 +509,56 @@ async function renderMap(){
     : `📍 검색 위치 · 파란 원=반경 · 핀=건물 중위 거래가(숫자=거래건수)`;
 }
 
+// ---- 갭(매매-전세, 같은 번지) ----
+async function applyGap(){
+  const sale=rawCache.sale||[], jeon=(rawCache.rent||[]).filter(d=>d.월세===0);
+  let saleD, jeonD;
+  if(scope==='dong'){ saleD=sale.filter(d=>d.동===ctx.dong); jeonD=jeon.filter(d=>d.동===ctx.dong); }
+  else { const radius=+scope; setStatus('반경 건물 좌표 변환 중…');
+    saleD=await applyRadius(sale,radius,(d,t)=>setStatus(`매매 건물 좌표 변환 중… (${d}/${t})`));
+    jeonD=await applyRadius(jeon,radius,(d,t)=>setStatus(`전세 건물 좌표 변환 중… (${d}/${t})`)); }
+  renderGap(saleD, jeonD);
+}
+function renderGap(saleD, jeonD){
+  const scopeTxt = scope==='dong'?`${ctx.dong} (법정동)`:`반경 ${(+scope)>=1000?(+scope)/1000+'km':scope+'m'}`;
+  const m={};
+  saleD.forEach(d=>{ const k=d.동+' '+d.번지; (m[k]=m[k]||{동:d.동,번지:d.번지,건물명:d.건물명,s:[],j:[]}).s.push(d.금액만원); });
+  jeonD.forEach(d=>{ const k=d.동+' '+d.번지; (m[k]=m[k]||{동:d.동,번지:d.번지,건물명:d.건물명,s:[],j:[]}).j.push(d.보증금); });
+  const rows=Object.values(m).filter(b=>b.s.length&&b.j.length)
+    .map(b=>{ const sm=median(b.s), jm=median(b.j); return {건물명:b.건물명||'–', 동:b.동, 매매:sm, 전세:jm, 갭:sm-jm, 율:Math.round(jm/sm*100), n:b.s.length+b.j.length}; })
+    .sort((a,b)=>b.갭-a.갭);
+  if(!rows.length){ setStatus(`${scopeTxt} — 같은 번지에 매매·전세가 모두 있는 건물이 없어 갭 계산 불가. 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
+  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · 갭(매매−전세) ${rows.length}개 건물`);
+  const gaps=rows.map(r=>r.갭), rates=rows.map(r=>r.율);
+  $('stats').innerHTML=[
+    ['갭 건물수', rows.length+'곳', false],
+    ['중위 갭(매매−전세)', fmtEok(Math.round(median(gaps))), true],
+    ['중위 전세가율', Math.round(median(rates))+'%', false],
+    ['중위 매매가', fmtEok(Math.round(median(rows.map(r=>r.매매)))), false],
+  ].map(s=>`<div class="stat"><div class="v ${s[2]?'green':''}">${s[1]}</div><div class="k">${s[0]}</div></div>`).join('');
+  $('split').style.display='flex';
+  $('chart').innerHTML=`<text x="450" y="170" text-anchor="middle" fill="var(--sub)" font-size="14">갭 = 같은 번지의 매매 중위가 − 전세 중위가 (아래 표 참고)</text>`;
+  $('chartLegend').textContent='전세가율↑ = 갭(투자금)↓ · 같은 번지 매칭 기준';
+  $('tblTitle').textContent=`갭 분석 — ${scopeTxt}`;
+  document.querySelector('.tbl-scroll').style.display='none';
+  const gb=$('gapBox'); gb.style.display=''; gb.style.maxHeight='520px'; gb.style.overflow='auto';
+  const MAX=400, shown=rows.slice(0,MAX);
+  $('tblCount').textContent = rows.length>MAX?`표시 ${MAX}/총 ${rows.length}곳`:`${rows.length}곳`;
+  gb.innerHTML=`<table><thead><tr><th class="l">건물</th><th class="l">동</th><th>매매중위</th><th>전세중위</th><th>갭</th><th>전세가율</th><th>건수</th></tr></thead><tbody>${shown.map(r=>`<tr><td class="l">${r.건물명}</td><td class="l">${r.동}</td><td>${fmtEok(r.매매)}</td><td>${fmtEok(r.전세)}</td><td><b>${fmtEok(r.갭)}</b></td><td>${r.율}%</td><td>${r.n}</td></tr>`).join('')}</tbody></table>`;
+  lastDeals=[]; renderMap();
+}
+
 function setStatus(t, err){ const el=$('status'); el.innerHTML=t; el.className='status'+(err?' err':''); }
 
 // 범위 세그
 $('seg_scope').querySelectorAll('button').forEach(b=>b.addEventListener('click', async ()=>{
   $('seg_scope').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); scope=b.dataset.v;
-  if(lastRaw.length){ $('q_run').disabled=true; await applyScope(); $('q_run').disabled=false; }
+  if(ctx){ $('q_run').disabled=true; await applyScope(); $('q_run').disabled=false; }
+}));
+// 거래유형 세그 (매매/전세/월세/갭)
+$('seg_kind').querySelectorAll('button').forEach(b=>b.addEventListener('click', async ()=>{
+  $('seg_kind').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); kind=b.dataset.k;
+  if(ctx){ $('q_run').disabled=true; try{ await ensureRaw(); await applyScope(); }catch(e){ setStatus('데이터 로드 실패.', true); } $('q_run').disabled=false; }
 }));
 $('q_run').addEventListener('click', run);
 $('q_addr').addEventListener('keydown', e=>{ if(e.key==='Enter') run(); });
