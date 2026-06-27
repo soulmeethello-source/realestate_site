@@ -158,7 +158,7 @@ function reset(e){ geo.resetStyle(e.target); info.update(); }
 
 function build(){
   geo = L.geoJSON(window.__GEO, { style:styleFn, onEachFeature:(f,l)=>{
-    l.on({ mouseover:highlight, mouseout:reset, click:e=>map.fitBounds(e.target.getBounds()) });
+    l.on({ mouseover:highlight, mouseout:reset, click:e=>{ map.fitBounds(e.target.getBounds()); geo.resetStyle(); if(nonregLayer) nonregLayer.bringToFront(); } });
   }}).addTo(map);
   addHatch();
   labelLayer = L.layerGroup().addTo(map); labelMarkers={};
@@ -198,6 +198,7 @@ function init(){
   legend.addTo(map);
 
   build(); legend.update();
+  map.on('zoomend', ()=>{ if(geo) geo.resetStyle(); if(nonregLayer) nonregLayer.bringToFront(); });
 }
 
 // 데이터 로드
