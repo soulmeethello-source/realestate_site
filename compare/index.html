@@ -95,7 +95,7 @@
 <body>
     <button class="theme-toggle" id="themeToggle" title="다크모드">🌙</button>
     <div class="header">
-        <h1>빌라 시세비교 <span style="font-size:16px;font-weight:600;opacity:0.92;">📍 화곡동</span></h1>
+        <h1>빌라 시세비교 <span id="rgnPin" style="font-size:16px;font-weight:600;opacity:0.92;">📍 화곡동</span></h1>
         <p>국토부 실거래가 기반 · 조건(연식·면적·기간)을 바꾸면 유사매물·연식별 월별 시세가 비교됩니다</p>
         <div class="header-links">
             <a class="home-link" href="/">← 부동산 사이트 모음</a>
@@ -111,9 +111,13 @@
     <div class="container">
         <div class="card">
             <div class="notice">
-                📍 현재 <b>화곡동</b> 실거래가만 제공돼요. <b>지역은 순차적으로 확대</b>할 예정입니다.
+                📍 지역을 선택해 비교하세요. <b>지역은 순차적으로 계속 추가</b>됩니다.
             </div>
             <div class="controls">
+                <label class="ctrl">
+                    <span>지역 선택</span>
+                    <select id="rgn"></select>
+                </label>
                 <label class="ctrl">
                     <span>건축연도 (중심 ± 오차)</span>
                     <div class="row">
@@ -224,11 +228,17 @@
 
     let DATA=[], META={}, chart=null, chart2=null;
 
-    // 관심 매물 — 번지는 노출하지 않고 차트에만 점으로 표시 (b/ym 으로 데이터 매칭)
-    const TARGETS = [
-        { b:'350-9', ym:202310, label:'관심 매물 ①' },
-        { b:'454-1', ym:202502, label:'관심 매물 ②' },
+    // 지역 레지스트리 — 동 하나씩 추가 (data/<file> 는 build_dong_villa.js 로 생성)
+    const REGIONS = [
+        { key:'hwagok', name:'서울 강서구 화곡동', file:'hwagok_villa.json' },
+        { key:'juan',   name:'인천 미추홀구 주안동', file:'juan_villa.json' },
     ];
+    // 관심 매물(지역별) — 번지는 노출하지 않고 차트에만 점으로 표시 (b/ym 으로 매칭)
+    const INTERESTS = {
+        hwagok: [ { b:'350-9', ym:202310, label:'관심 매물 ①' }, { b:'454-1', ym:202502, label:'관심 매물 ②' } ],
+        juan: [],
+    };
+    let TARGETS = INTERESTS.hwagok;
 
     // 연식 비교: 면적/대지/층/기간/번지 조건은 유지하되 '건축연도' 필터는 제외하고
     // 거래시점 기준 경과연수로 준신축/구축/노후 3밴드로 나눠 분기별 중앙값 라인.
@@ -445,10 +455,21 @@
         });
     })();
 
-    fetch('/data/hwagok_villa.json')
-        .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
-        .then(j=>{ META=j.meta; DATA=j.rows; buildYmOptions(META.period); render(); })
-        .catch(e=>{ $('note').innerHTML = '<span class="warn">데이터를 불러오지 못했습니다 ('+e.message+'). data/hwagok_villa.json 확인.</span>'; });
+    function loadRegion(key){
+        const reg = REGIONS.find(r=>r.key===key) || REGIONS[0];
+        TARGETS = INTERESTS[reg.key] || [];
+        fetch('/data/'+reg.file)
+            .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
+            .then(j=>{ META=j.meta; DATA=j.rows;
+                $('cTitle').textContent = (META.dong||'') + ' 유사 빌라 월별 시세 추세';
+                $('rgnPin').textContent = '📍 ' + (META.dong||'');
+                buildYmOptions(META.period); render();
+            })
+            .catch(e=>{ $('note').innerHTML = '<span class="warn">데이터를 불러오지 못했습니다 ('+e.message+').</span>'; });
+    }
+    $('rgn').innerHTML = REGIONS.map(r=>`<option value="${r.key}">${r.name}</option>`).join('');
+    $('rgn').addEventListener('change', e=>loadRegion(e.target.value));
+    loadRegion(REGIONS[0].key);
     </script>
 </body>
 </html>
