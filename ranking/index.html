@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>수도권 빌라 거래량 분석 랭킹</title>
+    <title>수도권 빌라 거래량 랭킹 분석</title>
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-SEL6E8JPDG"></script>
     <script>
@@ -13,7 +13,7 @@
         gtag('config', 'G-SEL6E8JPDG');
     </script>
     <meta name="description" content="연립다세대 실거래가 기반 수도권 단타 유망 지역 랭킹 (유동성·법인매수·시세)">
-    <meta property="og:title" content="수도권 빌라 거래량 분석 랭킹">
+    <meta property="og:title" content="수도권 빌라 거래량 랭킹 분석">
     <meta property="og:description" content="연립다세대 실거래가 기반 수도권 단타 유망 지역 랭킹">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://estate.lifetiming.kr/ranking/">
@@ -46,8 +46,8 @@
 
         .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table.rk { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 720px; }
-        table.rk thead th { position: sticky; top: 0; background: #f7f9fc; color: #555; font-weight: 700; font-size: 12px; padding: 10px 8px; text-align: right; white-space: nowrap; cursor: pointer; user-select: none; border-bottom: 2px solid #e8eaed; }
-        table.rk thead th.l { text-align: left; }
+        table.rk thead th { position: sticky; top: 0; background: #f7f9fc; color: #555; font-weight: 700; font-size: 12px; padding: 10px 8px; text-align: center; white-space: nowrap; cursor: pointer; user-select: none; border-bottom: 2px solid #e8eaed; }
+        table.rk thead th.l { text-align: center; }
         table.rk thead th:hover { color: #007AFF; }
         table.rk thead th .arr { color: #007AFF; font-size: 10px; }
         table.rk tbody td { padding: 9px 8px; text-align: right; white-space: nowrap; border-bottom: 1px solid #f0f2f5; }
@@ -112,7 +112,7 @@
 <body>
     <button class="theme-toggle" id="themeToggle" title="다크모드 전환" aria-label="다크모드 전환">🌙</button>
     <div class="header">
-        <h1>수도권 빌라 거래량 분석 랭킹</h1>
+        <h1>수도권 빌라 거래량 랭킹 분석</h1>
         <p id="subhead">연립다세대 매매 실거래가 기반 · 유동성 + 법인매수 신호</p>
         <div class="header-links">
             <a class="home-link" href="/">← 부동산 사이트 모음</a>
@@ -144,10 +144,18 @@
                 </div>
                 <div class="ctrl"><span>최소 거래건수</span>
                     <div class="seg-group" id="f_min">
-                        <div class="seg" data-v="0">전체</div>
-                        <div class="seg active" data-v="20">20+</div>
-                        <div class="seg" data-v="50">50+</div>
-                        <div class="seg" data-v="100">100+</div>
+                        <div class="seg active" data-v="0">전체</div>
+                        <div class="seg" data-v="250">250+</div>
+                        <div class="seg" data-v="500">500+</div>
+                    </div>
+                </div>
+                <div class="ctrl"><span>최소 회전율</span>
+                    <div class="seg-group" id="f_turn">
+                        <div class="seg active" data-v="0">전체</div>
+                        <div class="seg" data-v="2">2%+</div>
+                        <div class="seg" data-v="3">3%+</div>
+                        <div class="seg" data-v="3.59">3.59%+</div>
+                        <div class="seg" data-v="4">4%+</div>
                     </div>
                 </div>
                 <div class="ctrl search"><span>지역 검색</span>
@@ -231,7 +239,7 @@
     <script>
         const $ = id => document.getElementById(id);
         let DATA = [], META = {};
-        const filt = { sido:'all', reg:'all', min:20, terms:[] };
+        const filt = { sido:'all', reg:'all', min:0, turn:0, terms:[] };
         const sort = { key:'거래건수', dir:-1 };
 
         const fmtPrice = won => {  // 만원 → 보기 좋게
@@ -245,6 +253,7 @@
             if (filt.reg === 'free' && d.규제) return false;
             if (filt.reg === 'reg' && !d.규제) return false;
             if (d.거래건수 < filt.min) return false;
+            if (filt.turn > 0 && (d.회전율 == null || d.회전율 < filt.turn)) return false;
             if (filt.terms.length && !filt.terms.some(t=>d.지역.includes(t))) return false;
             return true;
         }
@@ -296,6 +305,7 @@
         bindSeg('f_sido','sido');
         bindSeg('f_reg','reg');
         bindSeg('f_min','min', v=>parseInt(v,10));
+        bindSeg('f_turn','turn', v=>parseFloat(v));
         $('f_q').addEventListener('input', e=>{ filt.terms = e.target.value.split(/[,\s]+/).map(s=>s.trim()).filter(Boolean); render(); });
 
         document.querySelectorAll('th[data-k]').forEach(th=>{
@@ -327,7 +337,7 @@
         // 공유하기
         (function(){
             const btn = document.getElementById('shareBtn'); if(!btn) return;
-            const URL_ = 'https://estate.lifetiming.kr/ranking', MSG = '수도권 빌라 거래량 분석 랭킹 — 실거래 기반 동네별 유동성·시세';
+            const URL_ = 'https://estate.lifetiming.kr/ranking', MSG = '수도권 빌라 거래량 랭킹 분석 — 실거래 기반 동네별 유동성·시세';
             btn.addEventListener('click', async ()=>{
                 const flash = m => { const o=btn.dataset.orig||(btn.dataset.orig=btn.textContent); btn.textContent=m; setTimeout(()=>btn.textContent=o,1600); };
                 if(navigator.share){ try{ await navigator.share({title:'수도권 빌라 거래량', text:MSG, url:URL_}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }

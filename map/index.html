@@ -132,7 +132,7 @@ function addHatch(){
   const svg=map.getPanes().overlayPane.querySelector('svg');
   if(svg && !svg.querySelector('#hatch')){
     const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
-    defs.innerHTML='<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="'+(dark?'#cfeede':'#0f4d2e')+'" stroke-width="2.2"/></pattern>';
+    defs.innerHTML='<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="#ffffff" stroke-width="2.2"/></pattern>';
     svg.insertBefore(defs, svg.firstChild);
   }
   nonregLayer.eachLayer(l=>{ l._path.setAttribute('fill','url(#hatch)'); l._path.setAttribute('fill-opacity','0.9'); });
@@ -193,7 +193,7 @@ function init(){
     const lo=[0,...b];
     for(let i=0;i<RAMP.length;i++){ const a=lo[i], z=b[i];
       h+=`<i style="background:${RAMP[i]}"></i>${a}${z!=null?`–${z}`:'+'}<br>`; }
-    h+=`<div style="margin-top:6px;border-top:1px solid var(--line);padding-top:5px;"><i style="background:repeating-linear-gradient(45deg,#0f6b3e 0 2px,transparent 2px 5px);border:1px solid var(--line)"></i>비규제 지역(빗금)</div>`;
+    h+=`<div style="margin-top:6px;border-top:1px solid var(--line);padding-top:5px;"><i style="background:repeating-linear-gradient(45deg,#ffffff 0 2px,#6baed6 2px 5px);border:1px solid var(--line)"></i>비규제 지역(빗금)</div>`;
     this._div.innerHTML=h; };
   legend.addTo(map);
 
