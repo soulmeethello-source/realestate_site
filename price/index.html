@@ -629,7 +629,7 @@ async function renderGap(saleD, jeonD){
       rows.push({건물명:b.건물명||'–', 동:b.동, 전용, 매매, 전세, 갭:매매-전세, 율:Math.round(전세/매매*100), t, 계약:d.계약||'', 추정:타입!=='real', 타입});
     });
   });
-  rows.sort((a,b)=>b.갭-a.갭);
+  rows.sort((a,b)=>{ if(a.t==null) return 1; if(b.t==null) return -1; return b.t-a.t; });   // 최신 계약 먼저(내림차순)
   if(!rows.length){ setStatus(`${scopeTxt} — 갭 낼 거래가 없어요(전세·공시 모두 없음). 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
   const realRows=rows.filter(r=>!r.추정), gN=rows.length-realRows.length;
   const realRates=realRows.map(r=>r.율).filter(v=>v!=null && v<=120);   // 이상치(>120%) 제외
