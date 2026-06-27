@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>수도권 빌라 거래량 분석 랭킹</title>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SEL6E8JPDG"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-SEL6E8JPDG');
+    </script>
     <meta name="description" content="연립다세대 실거래가 기반 수도권 단타 유망 지역 랭킹 (유동성·법인매수·시세)">
     <meta property="og:title" content="수도권 빌라 거래량 분석 랭킹">
     <meta property="og:description" content="연립다세대 실거래가 기반 수도권 단타 유망 지역 랭킹">
@@ -12,13 +20,13 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6f8; color: #333; line-height: 1.6; }
-        .header { background: linear-gradient(135deg, #0051d5 0%, #007AFF 100%); color: #fff; padding: 40px 24px 48px; text-align: center; }
-        .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-        .header p { font-size: 13.5px; opacity: 0.88; }
+        .header { background: linear-gradient(135deg, #0a84ff 0%, #0a8a52 100%); color: #fff; padding: 40px 24px 48px; text-align: center; }
+        .header h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+        .header p { font-size: 15px; opacity: 0.85; }
         .header .home-link { display: inline-flex; align-items: center; font-size: 13px; color: #fff; background: rgba(255,255,255,0.18); padding: 7px 14px; border-radius: 20px; text-decoration: none; transition: background 0.2s; white-space: nowrap; border: none; cursor: pointer; font-family: inherit; }
         .header .home-link:hover { background: rgba(255,255,255,0.3); }
         .header-links { margin: 14px auto 0; display: flex; flex-wrap: nowrap; justify-content: center; gap: 8px; }
-        @media (max-width: 480px) { .header .home-link { font-size: 11.5px; padding: 6px 10px; } .header-links { gap: 5px; } }
+        @media (max-width: 480px) { .header h1 { font-size: 24px; } .header .home-link { font-size: 11.5px; padding: 6px 10px; } .header-links { gap: 5px; } }
         .container { max-width: 1120px; margin: 0 auto; padding: 0 18px 64px; }
         .card { background: #fff; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.07); padding: 18px 20px; margin-top: -28px; position: relative; z-index: 10; }
 
@@ -87,18 +95,19 @@
         [data-theme="dark"] .badge.reg { background: #3a1f1f; color: #ff7676; }
         [data-theme="dark"] .badge.free { background: #14342a; color: #3fcf86; }
 
-        @media (max-width: 600px){ .header h1 { font-size: 22px; } .container { padding: 0 10px 48px; } }
+        @media (max-width: 600px){ .header h1 { font-size: 24px; } .container { padding: 0 10px 48px; } }
     </style>
     <script>(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
 </head>
 <body>
     <button class="theme-toggle" id="themeToggle" title="다크모드 전환" aria-label="다크모드 전환">🌙</button>
     <div class="header">
-        <h1>🏘️ 수도권 빌라 거래량 분석 랭킹</h1>
+        <h1>수도권 빌라 거래량 분석 랭킹</h1>
         <p id="subhead">연립다세대 매매 실거래가 기반 · 유동성 + 법인매수 신호</p>
         <div class="header-links">
             <a class="home-link" href="/">← 부동산 사이트 모음</a>
             <a class="home-link" href="/auction/">&#129518; 경매 수익률 계산기</a>
+            <a class="home-link" href="/map/">🗺️ 빌라 지도</a>
             <button type="button" class="home-link" id="shareBtn">🔗 공유하기</button>
         </div>
     </div>
@@ -145,6 +154,7 @@
                             <th data-k="규제">규제</th>
                             <th data-k="단타지수">단타지수</th>
                             <th data-k="거래건수">거래건수<br><span style="font-weight:400;color:#aaa">유동성</span></th>
+                            <th data-k="회전율">회전율<br><span style="font-weight:400;color:#aaa">거래/재고·시군구</span></th>
                             <th data-k="중위가">중위가</th>
                             <th data-k="중위평형">중위평형</th>
                             <th data-k="법인매수pct">법인매수%</th>
@@ -234,6 +244,7 @@
                     <td><span class="badge ${d.규제?'reg':'free'}">${d.규제?'규제':'비규제'}</span></td>
                     <td>${idxCell}</td>
                     <td>${d.거래건수.toLocaleString()}</td>
+                    <td>${d.회전율!=null?'<b>'+d.회전율+'%</b>':'<span style="color:#bbb">–</span>'}</td>
                     <td>${fmtPrice(d.중위가)}</td>
                     <td>${d.중위평형}평<br><span style="font-size:10px;color:#aaa">${d.중위면적}㎡</span></td>
                     <td><span class="corp${corpHi}">${d.법인매수pct}%</span><br><span style="font-size:10px;color:#aaa">${d.법인매수}건</span></td>
@@ -300,15 +311,27 @@
         })();
 
         // 데이터 로드
-        fetch('/data/villa_ranking.json')
-            .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
-            .then(j=>{
-                META = j; DATA = j.data || [];
-                $('subhead').textContent = `연립다세대 매매 실거래 ${j.기간} · 총 ${j.총거래.toLocaleString()}건 · ${j.지역수.toLocaleString()}개 지역`;
-                $('srcline').textContent = `출처: ${j.출처} · 기간 ${j.기간} · 갱신 ${j.갱신}`;
-                render();
-            })
-            .catch(e=>{ $('summary').innerHTML = '<span style="color:#d64545">데이터를 불러오지 못했습니다 ('+e.message+'). /data/villa_ranking.json 확인.</span>'; });
+        Promise.all([
+            fetch('/data/villa_ranking.json').then(r=>{ if(!r.ok) throw new Error('ranking '+r.status); return r.json(); }),
+            fetch('/data/villa_turnover.json').then(r=>r.ok?r.json():null).catch(()=>null),
+        ]).then(([j, tv])=>{
+            META = j; DATA = j.data || [];
+            if (tv && tv.data){                          // 시군구 회전율 매핑
+                const map = {}; tv.data.forEach(t=>map[t.시도+'|'+t.시군구]=t.회전율);
+                DATA.forEach(d=>{
+                    const t = d.지역.split(' '); let si=null, gu=null;
+                    for (let i=1;i<t.length;i++){ if(/구$/.test(t[i])) gu=t[i]; else if(/(시|군)$/.test(t[i])) si=t[i]; else break; }
+                    const c1 = (si&&gu)?(si+' '+gu):(gu||si);
+                    d.회전율 = map[d.시도+'|'+c1] ?? (si?map[d.시도+'|'+si]:undefined) ?? null;
+                });
+                $('srcline2') && ($('srcline2').textContent='');
+                window.__tv = tv.기준;
+            }
+            $('subhead').textContent = `연립다세대 매매 실거래 ${j.기간} · 총 ${j.총거래.toLocaleString()}건 · ${j.지역수.toLocaleString()}개 지역`;
+            $('srcline').textContent = `출처: ${j.출처} · 기간 ${j.기간} · 갱신 ${j.갱신}`
+                + (tv&&tv.기준?` · 회전율=거래÷재고(${tv.기준.재고연도}년 연립+다세대, 시군구 기준)`:'');
+            render();
+        }).catch(e=>{ $('summary').innerHTML = '<span style="color:#d64545">데이터를 불러오지 못했습니다 ('+e.message+').</span>'; });
     </script>
 </body>
 </html>

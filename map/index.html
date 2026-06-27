@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수도권 빌라 지도 — 거래량·회전율</title>
+<meta name="description" content="수도권 시군구별 빌라(연립다세대) 거래량과 회전율을 색지도로 한눈에 — 국토부 실거래가 + KOSIS 주택수 기반">
+<script>(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-SEL6E8JPDG"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-SEL6E8JPDG');</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{ --bg:#f5f6f8; --card:#fff; --ink:#1d1d1f; --sub:#666; --line:#e3e6ea; --accent:#007AFF; }
+[data-theme="dark"]{ --bg:#15171c; --card:#1f232a; --ink:#e6e8ec; --sub:#9aa0ab; --line:#2c313a; --accent:#4f9dff; }
+*{box-sizing:border-box;}
+body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; background:var(--bg); color:var(--ink); }
+.header{ background:linear-gradient(135deg, #0a84ff 0%, #0a8a52 100%); color:#fff; padding:30px 16px 24px; text-align:center; }
+.header h1{ margin:0; font-size:32px; font-weight:700; }
+.header p{ margin:8px 0 0; font-size:15px; opacity:0.85; }
+.header-links{ margin:15px auto 0; display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+.header .home-link{ display:inline-flex; align-items:center; font-size:13px; color:#fff; background:rgba(255,255,255,0.18); padding:7px 14px; border-radius:20px; text-decoration:none; white-space:nowrap; transition:background .2s; }
+.header .home-link:hover{ background:rgba(255,255,255,0.3); }
+.toolbar{ max-width:1080px; margin:14px auto 0; padding:0 16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.seg{ display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; }
+.seg button{ border:none; background:var(--card); color:var(--ink); padding:9px 16px; font-size:14px; cursor:pointer; font-family:inherit; border-right:1px solid var(--line); font-weight:600; }
+.seg button:last-child{ border-right:none; }
+.seg button.on{ background:var(--accent); color:#fff; }
+.toolbar .lbl{ font-size:13px; color:var(--sub); font-weight:600; }
+.map-wrap{ max-width:1080px; margin:12px auto 0; padding:0 16px; }
+#map{ width:100%; height:640px; border-radius:14px; border:1px solid var(--line); }
+.theme-toggle{ position:fixed; top:12px; right:14px; z-index:1100; width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,0.5); background:rgba(255,255,255,0.18); color:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+.footer{ max-width:1080px; margin:18px auto 40px; padding:14px 16px 0; border-top:1px solid var(--line); text-align:center; font-size:12px; color:var(--sub); }
+.footer a{ color:var(--accent); text-decoration:none; }
+.footer a:hover{ text-decoration:underline; }
+.footer-contact{ margin-top:8px; font-size:13px; }
+/* Leaflet info & legend */
+.info-box{ padding:10px 12px; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:10px; box-shadow:0 1px 6px rgba(0,0,0,0.15); font-size:13px; min-width:170px; }
+.info-box h4{ margin:0 0 6px; font-size:14px; }
+.info-box .big{ font-size:18px; font-weight:800; color:var(--accent); }
+.legend{ padding:8px 10px; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:10px; box-shadow:0 1px 6px rgba(0,0,0,0.15); font-size:12px; line-height:1.7; }
+.legend i{ display:inline-block; width:14px; height:14px; margin-right:6px; border-radius:3px; vertical-align:-2px; }
+.mlbl-wrap{ background:transparent !important; border:none !important; }
+.mlbl{ text-align:center; color:#15324a; font-weight:800; font-size:10.5px; line-height:16px; text-shadow:0 0 2px #fff,0 0 3px #fff,0 0 4px #fff; white-space:nowrap; pointer-events:none; }
+[data-theme="dark"] .mlbl{ color:#eaf1f8; text-shadow:0 0 2px #000,0 0 3px #000,0 0 4px #000; }
+[data-theme="dark"] .leaflet-tile{ filter:none; }
+@media(max-width:640px){ #map{ height:460px; } .header h1{ font-size:24px; } }
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle">🌙</button>
+<div class="header">
+  <h1>수도권 빌라 지도</h1>
+  <p>시군구별 빌라(연립+다세대) 거래량·회전율 — 국토부 실거래가 + KOSIS 주택수</p>
+  <div class="header-links">
+    <a class="home-link" href="/">← 부동산 사이트 모음</a>
+    <a class="home-link" href="/ranking/">🏘️ 수도권 빌라 거래량</a>
+    <a class="home-link" href="/price/">📈 빌라 시세조회</a>
+    <a class="home-link" href="/auction/">🧮 경매 수익률 계산기</a>
+  </div>
+</div>
+
+<div class="toolbar">
+  <span class="lbl">지표</span>
+  <span class="seg" id="seg_metric">
+    <button data-m="회전율" class="on">회전율 (거래/재고)</button>
+    <button data-m="거래">거래건수</button>
+  </span>
+  <span class="lbl" id="basis" style="margin-left:auto;"></span>
+</div>
+<div class="map-wrap"><div id="map"></div></div>
+
+<div class="footer">
+  색이 진할수록 값이 큼 · 시군구 단위 · 회전율 = 1년 거래량 ÷ 연립+다세대 재고<br>
+  국토교통부 실거래가 + KOSIS 주택총조사 · 경계: southkorea-maps(통계청 2018, 단순화)
+  <div class="footer-contact">사이트 추가, 기능 건의, 오류 제보 &middot; <a href="mailto:chiyohappy@gmail.com?subject=%5B%EB%B6%80%EB%8F%99%EC%82%B0%20%EC%82%AC%EC%9D%B4%ED%8A%B8%20%EB%AA%A8%EC%9D%8C%5D">chiyohappy@gmail.com</a></div>
+  <div class="footer-contact">오늘 조회수: <span id="visitor-today">-</span></div>
+  <div class="footer-contact">누적 조회수: <span id="visitor-total">-</span></div>
+</div>
+<script data-goatcounter="https://soulmeethello.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script>
+(function(){var base='https://soulmeethello.goatcounter.com/counter/TOTAL.json',today=new Date().toISOString().slice(0,10);function s(id,u){var r=new XMLHttpRequest();r.addEventListener('load',function(){try{document.getElementById(id).innerText=JSON.parse(this.responseText).count.toLocaleString();}catch(e){}});r.open('GET',u);r.send();}setTimeout(function(){s('visitor-total',base);s('visitor-today',base+'?start='+today);},1000);})();
+</script>
+
+<script>
+const $ = id => document.getElementById(id);
+let metric = '회전율';
+const RAMP = ['#e8eef7','#c9def0','#9ecae1','#69a8d6','#3a82c4','#1257a3'];
+const BINS = { '회전율':[1,2,3,4,5], '거래':[100,300,700,1200,2000] };
+const fmtV = (v,m)=> v==null?'–' : (m==='회전율'? v+'%' : v.toLocaleString()+'건');
+function color(v){ if(v==null) return 'var(--line)'; const b=BINS[metric]; let i=0; while(i<b.length && v>=b[i]) i++; return RAMP[i]; }
+// 비규제 지역(투기과열지구·조정대상지역 아님): 인천 전체 + 경기 일부
+const NONREG = new Set(["23010","23020","23030","23040","23050","23060","23070","23080","23310","23320","31012","31030","31041","31050","31091","31092","31101","31103","31104","31120","31130","31150","31160","31192"]);
+function labelText(code){ const v=valById[code]; if(!v) return ''; return metric==='회전율'? v.회전율+'%' : v.거래.toLocaleString(); }
+// 라벨 위치 = 최대 폴리곤(본토)의 면적중심
+function ringArea(r){let a=0;for(let i=0,j=r.length-1;i<r.length;j=i++)a+=r[j][0]*r[i][1]-r[i][0]*r[j][1];return Math.abs(a/2);}
+function ringCentroid(r){let x=0,y=0,A=0;for(let i=0,j=r.length-1;i<r.length;j=i++){const f=r[j][0]*r[i][1]-r[i][0]*r[j][1];x+=(r[j][0]+r[i][0])*f;y+=(r[j][1]+r[i][1])*f;A+=f;}A*=0.5;return A?[x/(6*A),y/(6*A)]:r[0];}
+function labelLatLng(geom){ const polys=geom.type==='Polygon'?[geom.coordinates]:geom.coordinates; let best=polys[0][0],bestA=-1; polys.forEach(po=>{const a=ringArea(po[0]); if(a>bestA){bestA=a;best=po[0];}}); const c=ringCentroid(best); return [c[1],c[0]]; }
+function mkIcon(code){ return L.divIcon({ html:`<div class="mlbl">${labelText(code)}</div>`, className:'mlbl-wrap', iconSize:[64,16], iconAnchor:[32,8] }); }
+
+let map, geo, byCode={}, valById={}, info, legend, TV, labelLayer, labelMarkers={}, nonregLayer;
+function addHatch(){
+  const feats={type:'FeatureCollection', features:window.__GEO.features.filter(f=>NONREG.has(f.properties.code))};
+  nonregLayer=L.geoJSON(feats,{style:{stroke:false, fillOpacity:1}, interactive:false}).addTo(map);
+  const dark=document.documentElement.getAttribute('data-theme')==='dark';
+  const svg=map.getPanes().overlayPane.querySelector('svg');
+  if(svg && !svg.querySelector('#hatch')){
+    const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+    defs.innerHTML='<pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="'+(dark?'#cfeede':'#0f4d2e')+'" stroke-width="2.2"/></pattern>';
+    svg.insertBefore(defs, svg.firstChild);
+  }
+  nonregLayer.eachLayer(l=>{ l._path.setAttribute('fill','url(#hatch)'); l._path.setAttribute('fill-opacity','0.9'); });
+}
+
+function valueFor(props){
+  if(byCode[props.code]) return byCode[props.code];
+  let name = props.name; if(name==='남구') name='미추홀구';        // 인천 남구→미추홀구
+  const exact = TV.data.filter(d=>d.시군구===name);
+  if(exact.length) return aggregate(exact, name);
+  const pref = TV.data.filter(d=>d.시군구.startsWith(name));        // 부천시 ← 부천시 원미구…
+  if(pref.length) return aggregate(pref, name);
+  return null;
+}
+function aggregate(arr, name){ const 거래=arr.reduce((s,d)=>s+d.거래,0), 재고=arr.reduce((s,d)=>s+d.재고,0);
+  return { 시군구:name, 거래, 재고, 회전율:+(거래/재고*100).toFixed(2) }; }
+
+function styleFn(f){ const v=valById[f.properties.code]; const m=v?v[metric]:null;
+  return { fillColor:color(m), weight:0.8, color:'#ffffff', fillOpacity: v?0.82:0.25 }; }
+
+function highlight(e){ const l=e.target; l.setStyle({weight:2.5, color:'#222', fillOpacity:0.92}); l.bringToFront(); info.update(l.feature.properties.code); }
+function reset(e){ geo.resetStyle(e.target); info.update(); }
+
+function build(){
+  geo = L.geoJSON(window.__GEO, { style:styleFn, onEachFeature:(f,l)=>{
+    l.on({ mouseover:highlight, mouseout:reset, click:e=>map.fitBounds(e.target.getBounds()) });
+  }}).addTo(map);
+  addHatch();
+  labelLayer = L.layerGroup().addTo(map); labelMarkers={};
+  window.__GEO.features.forEach(f=>{ const code=f.properties.code; if(!valById[code]) return;
+    const m = L.marker(labelLatLng(f.geometry), { icon:mkIcon(code), interactive:false, keyboard:false });
+    labelMarkers[code]=m; m.addTo(labelLayer);
+  });
+}
+
+function redraw(){ geo.setStyle(styleFn); Object.entries(labelMarkers).forEach(([c,m])=>m.setIcon(mkIcon(c))); legend.update(); }
+
+function init(){
+  map = L.map('map', { zoomControl:true, attributionControl:true }).setView([37.45,127.0], 9);
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark?'dark':'light'}_all/{z}/{x}/{y}{r}.png`,
+    { attribution:'&copy; OpenStreetMap &copy; CARTO', subdomains:'abcd', maxZoom:18 }).addTo(map);
+
+  info = L.control({position:'topright'});
+  info.onAdd=function(){ this._div=L.DomUtil.create('div','info-box'); this.update(); return this._div; };
+  info.update=function(code){ const v=code?valById[code]:null;
+    if(!v){ this._div.innerHTML='<h4>시군구</h4><span class="sub" style="color:var(--sub)">지역에 마우스를 올려보세요</span>'; return; }
+    const nonreg=NONREG.has(code);
+    this._div.innerHTML=`<h4>${v.시군구} ${nonreg?'<span style="font-size:11px;color:#0a8a52;font-weight:700">비규제</span>':'<span style="font-size:11px;color:#e2483d;font-weight:700">규제</span>'}</h4>
+      <div class="big">${fmtV(v[metric],metric)}</div>
+      <div style="color:var(--sub);margin-top:4px;">거래 ${v.거래.toLocaleString()}건 · 재고 ${v.재고.toLocaleString()}호<br>회전율 ${v.회전율}%</div>`;
+  };
+  info.addTo(map);
+
+  legend = L.control({position:'bottomright'});
+  legend.onAdd=function(){ this._div=L.DomUtil.create('div','legend'); this.update(); return this._div; };
+  legend.update=function(){ const b=BINS[metric]; let h=`<b>${metric==='회전율'?'회전율(%)':'거래건수'}</b><br>`;
+    const lo=[0,...b];
+    for(let i=0;i<RAMP.length;i++){ const a=lo[i], z=b[i];
+      h+=`<i style="background:${RAMP[i]}"></i>${a}${z!=null?`–${z}`:'+'}<br>`; }
+    h+=`<div style="margin-top:6px;border-top:1px solid var(--line);padding-top:5px;"><i style="background:repeating-linear-gradient(45deg,#0f6b3e 0 2px,transparent 2px 5px);border:1px solid var(--line)"></i>비규제 지역(빗금)</div>`;
+    this._div.innerHTML=h; };
+  legend.addTo(map);
+
+  build(); legend.update();
+}
+
+// 데이터 로드
+Promise.all([
+  fetch('/data/sudogwon_sigungu.geojson').then(r=>r.json()),
+  fetch('/data/villa_turnover.json').then(r=>r.json()),
+]).then(([gj, tv])=>{
+  window.__GEO=gj; TV=tv;
+  tv.data.forEach(d=>byCode[d.코드]=d);
+  gj.features.forEach(f=>{ valById[f.properties.code]=valueFor(f.properties); });
+  $('basis').textContent = `재고 ${tv.기준.재고연도}년 · 거래 ${tv.기준.거래기간}`;
+  init();
+}).catch(e=>{ $('map').innerHTML='<p style="padding:20px;color:#d33">지도 데이터를 불러오지 못했습니다: '+e.message+'</p>'; });
+
+// 지표 토글
+$('seg_metric').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+  $('seg_metric').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  metric=b.dataset.m; redraw();
+}));
+// 다크모드
+function syncIcon(){ $('themeToggle').textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️':'🌙'; }
+syncIcon();
+$('themeToggle').addEventListener('click',()=>{ const d=document.documentElement.getAttribute('data-theme')==='dark';
+  if(d){document.documentElement.removeAttribute('data-theme');localStorage.setItem('theme','light');}
+  else{document.documentElement.setAttribute('data-theme','dark');localStorage.setItem('theme','dark');}
+  syncIcon(); location.reload(); });
+</script>
+</body>
+</html>
