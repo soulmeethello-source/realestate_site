@@ -31,7 +31,10 @@ body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Ne
 .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:14px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
 .controls{ display:grid; grid-template-columns:1fr; gap:10px; }
 .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-label.lbl{ font-size:12px; font-weight:600; color:var(--sub); }
+.lbl{ font-size:11.5px; font-weight:700; color:#888; }
+[data-theme="dark"] .lbl{ color:var(--sub); }
+.pm{ color:#aaa; font-weight:400; font-size:12px; }
+.unit{ color:#aaa; font-size:12px; margin-left:1px; }
 input[type=text], select{ padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-size:14px; font-family:inherit; background:var(--card); color:var(--ink); outline:none; }
 input[type=text]:focus, select:focus{ border-color:var(--accent); }
 #q_addr{ flex:1; min-width:200px; }
@@ -135,13 +138,13 @@ td.l,th.l{ text-align:left; }
       <div class="row" style="gap:6px;">
         <span class="lbl">전용면적</span>
         <input type="text" id="f_area" inputmode="decimal" value="59" placeholder="중심 ㎡" style="width:84px;padding:8px 10px;">
-        <span class="lbl">±</span>
-        <input type="text" id="f_areaTol" inputmode="decimal" value="3" placeholder="오차" style="width:60px;padding:8px 10px;">㎡
+        <span class="pm">±</span>
+        <input type="text" id="f_areaTol" inputmode="decimal" value="3" placeholder="오차" style="width:60px;padding:8px 10px;"><span class="unit">㎡</span>
         <span class="lbl" style="margin-left:12px;">건축연도</span>
         <input type="text" id="f_yr" inputmode="numeric" value="2001" placeholder="중심" style="width:78px;padding:8px 10px;">
-        <span class="lbl">±</span>
-        <input type="text" id="f_yrTol" inputmode="numeric" value="2" placeholder="오차" style="width:60px;padding:8px 10px;">년
-        <span class="lbl" style="color:#aaa;">(비우면 전체)</span>
+        <span class="pm">±</span>
+        <input type="text" id="f_yrTol" inputmode="numeric" value="2" placeholder="오차" style="width:60px;padding:8px 10px;"><span class="unit">년</span>
+        <span class="pm">(비우면 전체)</span>
       </div>
     </div>
     <div class="status" id="status">주소를 입력하고 <b>조회</b>를 누르세요.</div>
@@ -359,7 +362,7 @@ async function run(){
   if(!g || !g.a){ setStatus('주소를 찾지 못했어요. 지번/도로명을 정확히 입력해 보세요.', true); $('q_run').disabled=false; return; }
   center={lat:g.lat, lng:g.lng};
   const a=g.a;
-  ctx={ sido:a.region_1depth_name, sigungu:a.region_2depth_name, dong:a.region_3depth_name, lawd:(a.b_code||'').slice(0,5) };
+  ctx={ sido:a.region_1depth_name, sigungu:a.region_2depth_name, dong:a.region_3depth_name, lawd:(a.b_code||'').slice(0,5), lawd10:(a.b_code||'') };
   if(!ctx.lawd){ setStatus('법정동 코드를 얻지 못했어요.', true); $('q_run').disabled=false; return; }
 
   rawCache = {};                          // 새 주소 → 캐시 초기화
@@ -507,31 +510,38 @@ function drawChart(deals){
   svg.innerHTML=s;
 }
 
-// ---- 갭 산점도 (가로=전세가율%, 세로=갭) ----
+// ---- 갭 산점도 (가로=매매 계약월, 세로=갭) ----
 function drawGapChart(rows){
   const W=900,H=372, padL=112,padR=22,padT=22,padB=66;
   const svg=$('chart');
-  const pts=rows.filter(r=>r.율>0 && r.갭!=null).map(r=>({x:r.율, y:r.갭}));
+  const pts=rows.filter(r=>r.t && r.갭!=null).map(r=>({t:r.t, y:r.갭, est:!!r.추정}));
   if(!pts.length){ svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="22" fill="var(--sub)">표시할 갭 데이터가 없습니다</text>`; return; }
-  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
-  let xMin=Math.min(40,...xs), xMax=Math.max(100,...xs);
-  let yMin=Math.min(0,...ys), yMax=Math.max(...ys); const yp=(yMax-yMin)*0.1||100; yMax+=yp;
-  const X=v=>padL+(v-xMin)/(xMax-xMin)*(W-padL-padR);
+  const ts=pts.map(p=>p.t), ys=pts.map(p=>p.y);
+  let tMin=Math.min(...ts), tMax=Math.max(...ts); if(tMin===tMax){tMin-=2.6e9;tMax+=2.6e9;}
+  let yMin=Math.min(0,...ys), yMax=Math.max(...ys); const yp=(yMax-yMin)*0.1||100; yMax+=yp; if(yMin<0)yMin-=yp*0.5;
+  const X=t=>padL+(t-tMin)/(tMax-tMin)*(W-padL-padR);
   const Y=v=>H-padB-(v-yMin)/(yMax-yMin)*(H-padT-padB);
   let s='';
+  // y 그리드 + 라벨 (억)
   for(let i=0;i<=4;i++){ const v=yMin+(yMax-yMin)*i/4, y=Y(v);
     s+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--line)" stroke-width="1"/>`;
     s+=`<text x="${padL-10}" y="${y+7}" text-anchor="end" font-size="21" fill="var(--sub)">${(v/10000).toFixed(1)}억</text>`;
   }
-  for(let i=0;i<=5;i++){ const v=xMin+(xMax-xMin)*i/5, x=X(v);
-    const anc=i===0?'start':i===5?'end':'middle';
-    s+=`<text x="${x}" y="${H-padB+26}" text-anchor="${anc}" font-size="21" fill="var(--sub)">${Math.round(v)}%</text>`;
+  // 0 기준선
+  if(yMin<0 && yMax>0){ const y0=Y(0); s+=`<line x1="${padL}" y1="${y0}" x2="${W-padR}" y2="${y0}" stroke="var(--sub)" stroke-width="1" stroke-dasharray="4 4" opacity="0.5"/>`; }
+  // x 라벨 (연-월)
+  const span=tMax-tMin, xticks=Math.min(6, Math.max(2, Math.round(span/(86400000*120))));
+  for(let i=0;i<=xticks;i++){ const t=tMin+span*i/xticks, x=X(t), dt=new Date(t);
+    const anc=i===0?'start':i===xticks?'end':'middle';
+    s+=`<text x="${x}" y="${H-padB+26}" text-anchor="${anc}" font-size="21" fill="var(--sub)">${String(dt.getFullYear()).slice(2)}.${String(dt.getMonth()+1).padStart(2,'0')}</text>`;
   }
   // 축 이름
   const cy=(padT+(H-padB))/2;
   s+=`<text transform="rotate(-90 26 ${cy})" x="26" y="${cy}" text-anchor="middle" font-size="20" font-weight="600" fill="var(--sub)">갭 (매매−전세, 억)</text>`;
-  s+=`<text x="${(padL+W-padR)/2}" y="${H-10}" text-anchor="middle" font-size="20" font-weight="600" fill="var(--sub)">전세가율 (%)</text>`;
-  pts.forEach(p=>{ s+=`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="7" fill="var(--accent2)" fill-opacity="0.55"/>`; });
+  s+=`<text x="${(padL+W-padR)/2}" y="${H-10}" text-anchor="middle" font-size="20" font-weight="600" fill="var(--sub)">매매 계약월</text>`;
+  pts.forEach(p=>{ s+= p.est
+    ? `<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="6" fill="none" stroke="var(--accent2)" stroke-width="1.6" stroke-opacity="0.55"/>`
+    : `<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="7" fill="var(--accent2)" fill-opacity="0.6"/>`; });
   svg.innerHTML=s;
 }
 
@@ -582,34 +592,66 @@ async function applyGap(){
   else { const radius=+scope; setStatus('반경 건물 좌표 변환 중…');
     saleD=await applyRadius(sale,radius,(d,t)=>setStatus(`매매 건물 좌표 변환 중… (${d}/${t})`));
     jeonD=await applyRadius(jeon,radius,(d,t)=>setStatus(`전세 건물 좌표 변환 중… (${d}/${t})`)); }
-  renderGap(saleD, jeonD);
+  await renderGap(saleD, jeonD);
 }
-function renderGap(saleD, jeonD){
+async function renderGap(saleD, jeonD){
   const scopeTxt = scope==='dong'?`${ctx.dong} (법정동)`:`반경 ${(+scope)>=1000?(+scope)/1000+'km':scope+'m'}`;
   const m={};
-  saleD.forEach(d=>{ const k=d.동+' '+d.번지; const b=(m[k]=m[k]||{동:d.동,번지:d.번지,건물명:d.건물명,s:[],j:[],a:[]}); b.s.push(d.금액만원); if(d.전용면적!=null)b.a.push(d.전용면적); });
-  jeonD.forEach(d=>{ const k=d.동+' '+d.번지; const b=(m[k]=m[k]||{동:d.동,번지:d.번지,건물명:d.건물명,s:[],j:[],a:[]}); b.j.push(d.보증금); if(d.전용면적!=null)b.a.push(d.전용면적); });
-  const rows=Object.values(m).filter(b=>b.s.length&&b.j.length)
-    .map(b=>{ const sm=median(b.s), jm=median(b.j); return {건물명:b.건물명||'–', 동:b.동, 전용:b.a.length?+median(b.a).toFixed(1):null, 매매:sm, 전세:jm, 갭:sm-jm, 율:Math.round(jm/sm*100), n:b.s.length+b.j.length}; })
-    .sort((a,b)=>b.갭-a.갭);
-  if(!rows.length){ setStatus(`${scopeTxt} — 같은 번지에 매매·전세가 모두 있는 건물이 없어 갭 계산 불가. 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
-  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · 갭(매매−전세) ${rows.length}개 건물${filterLabel()}`);
-  const gaps=rows.map(r=>r.갭), rates=rows.map(r=>r.율);
+  saleD.forEach(d=>{ const k=d.동+' '+d.번지; const b=(m[k]=m[k]||{동:d.동,번지:d.번지,건물명:d.건물명,s:[],j:[],a:[],sd:[]}); b.s.push(d.금액만원); if(d.전용면적!=null)b.a.push(d.전용면적); if(d.계약)b.sd.push(new Date(d.계약).getTime()); });
+  jeonD.forEach(d=>{ const k=d.동+' '+d.번지; const b=(m[k]=m[k]||{동:d.동,번지:d.번지,건물명:d.건물명,s:[],j:[],a:[],sd:[]}); b.j.push(d.보증금); if(d.전용면적!=null)b.a.push(d.전용면적); });
+  const aMed=b=>b.a.length?+median(b.a).toFixed(1):null;
+  // 매매 기준: 매매 실거래 있는 건물이 모집단
+  const withSale=Object.values(m).filter(b=>b.s.length);
+  if(!withSale.length){ setStatus(`${scopeTxt} — 매매 실거래가 없어 갭 계산 불가. 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
+  // 실측 전세가율(전세/매매) — 공시가 없을 때 fallback
+  const matched=withSale.filter(b=>b.j.length).map(b=>({sm:median(b.s), jm:median(b.j)}));
+  const avgRate=matched.length ? median(matched.map(r=>r.jm/r.sm)) : null;   // 0~1
+  // 전세 없는 건물 → 공시가×126%(안전 전세상한) 조회 (같은 법정동만)
+  const ac=pn($('f_area').value), at=pn($('f_areaTol').value)||0;
+  const estB=withSale.filter(b=>!b.j.length);
+  if(estB.length){
+    let done=0;
+    await pool(estB, 8, async b=>{
+      b._safe=null;
+      if(b.동===ctx.dong){
+        const pnu=pnuOf(b.번지);
+        if(pnu){ const g=await fetchGongsi(pnu); let items=g.items;
+          if(ac>0){ const bnd=items.filter(x=>x.전용면적!=null && Math.abs(x.전용면적-ac)<=at); if(bnd.length)items=bnd; }
+          const gv=items.map(x=>x.공시가).filter(v=>v!=null);
+          if(gv.length){ b._gman=Math.round(median(gv)/10000); b._safe=Math.round(b._gman*1.26); }
+        }
+      }
+      done++; if(done%5===0||done===estB.length) setStatus(`공시가 조회 중… (${done}/${estB.length})`);
+    });
+  }
+  const rows=withSale.map(b=>{
+    const sm=median(b.s), t=b.sd.length?median(b.sd):null;
+    if(b.j.length){ const jm=median(b.j); return {건물명:b.건물명||'–', 동:b.동, 전용:aMed(b), 매매:sm, 전세:jm, 갭:sm-jm, 율:Math.round(jm/sm*100), n:b.s.length+b.j.length, t, 추정:false, 타입:'real'}; }
+    if(b._safe!=null){ const jm=b._safe; return {건물명:b.건물명||'–', 동:b.동, 전용:aMed(b), 매매:sm, 전세:jm, 갭:sm-jm, 율:Math.round(jm/sm*100), n:b.s.length, t, 추정:true, 타입:'공시', 공시:b._gman}; }
+    if(avgRate!=null){ const jm=Math.round(sm*avgRate); return {건물명:b.건물명||'–', 동:b.동, 전용:aMed(b), 매매:sm, 전세:jm, 갭:sm-jm, 율:Math.round(avgRate*100), n:b.s.length, t, 추정:true, 타입:'율'}; }
+    return null;
+  }).filter(Boolean).sort((a,b)=>b.갭-a.갭);
+  const realRows=rows.filter(r=>!r.추정);
+  const gN=rows.filter(r=>r.타입==='공시').length, rN=rows.filter(r=>r.타입==='율').length;
+  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · 갭 ${rows.length}곳 (실측 ${realRows.length}${gN?` · 공시126% ${gN}`:''}${rN?` · 율추정 ${rN}`:''})${filterLabel()}`);
   $('stats').innerHTML=[
     ['갭 건물수', rows.length+'곳', false],
-    ['중위 갭(매매−전세)', fmtEok(Math.round(median(gaps))), true],
-    ['중위 전세가율', Math.round(median(rates))+'%', false],
+    ['중위 갭', fmtEok(Math.round(median(rows.map(r=>r.갭)))), true],
+    ['평균 전세가율(실측)', avgRate!=null?Math.round(avgRate*100)+'%':'–', false],
     ['중위 매매가', fmtEok(Math.round(median(rows.map(r=>r.매매)))), false],
   ].map(s=>`<div class="stat"><div class="v ${s[2]?'green':''}">${s[1]}</div><div class="k">${s[0]}</div></div>`).join('');
   $('split').style.display='flex';
   drawGapChart(rows);
-  $('chartLegend').textContent='● 건물별 · 가로=전세가율(%) · 세로=갭(매매−전세) · 우하단일수록 소액 투자 · 같은 번지 매칭';
+  $('chartLegend').textContent='● 실측 · ○ 추정(공시126%) · 가로=매매 계약월 · 세로=갭(매매−전세) · 낮을수록 소액 투자';
   $('tblTitle').textContent=`갭 분석 — ${scopeTxt}`;
   document.querySelector('.tbl-scroll').style.display='none';
   const gb=$('gapBox'); gb.style.display=''; gb.style.maxHeight='520px'; gb.style.overflow='auto';
   const MAX=400, shown=rows.slice(0,MAX);
   $('tblCount').textContent = rows.length>MAX?`표시 ${MAX}/총 ${rows.length}곳`:`${rows.length}곳`;
-  gb.innerHTML=`<table><thead><tr><th class="l">건물</th><th class="l">동</th><th>전용</th><th>매매중위</th><th>전세중위</th><th>갭</th><th>전세가율</th><th>건수</th></tr></thead><tbody>${shown.map(r=>`<tr><td class="l">${r.건물명}</td><td class="l">${r.동}</td><td>${r.전용!=null?r.전용+'㎡':'–'}</td><td>${fmtEok(r.매매)}</td><td>${fmtEok(r.전세)}</td><td><b>${fmtEok(r.갭)}</b></td><td>${r.율}%</td><td>${r.n}</td></tr>`).join('')}</tbody></table>`;
+  const badge=r=> r.타입==='real'?' <span style="font-size:10.5px;color:var(--accent2);font-weight:700">실측</span>'
+                : r.타입==='공시'?' <span style="font-size:10.5px;color:#c0883a;font-weight:700">공시126%</span>'
+                : ' <span style="font-size:10.5px;color:#aaa;font-weight:700">율추정</span>';
+  gb.innerHTML=`<table><thead><tr><th class="l">건물</th><th class="l">동</th><th>전용</th><th>매매중위</th><th>전세(상한)</th><th>갭</th><th>전세가율</th><th>건수</th></tr></thead><tbody>${shown.map(r=>`<tr${r.추정?' style="color:var(--sub)"':''}><td class="l">${r.건물명}${badge(r)}</td><td class="l">${r.동}</td><td>${r.전용!=null?r.전용+'㎡':'–'}</td><td>${fmtEok(r.매매)}</td><td>${r.추정?'~':''}${fmtEok(r.전세)}</td><td><b>${r.추정?'~':''}${fmtEok(r.갭)}</b></td><td>${r.율!=null?r.율+'%':'–'}</td><td>${r.n}</td></tr>`).join('')}</tbody></table><div class="hint" style="padding:8px 4px 2px;line-height:1.7;">갭 = 매매 − 전세 · <b style="color:var(--accent2)">실측</b> 전세 실거래 있음 → 매매−<u>실제전세</u> · <b style="color:#c0883a">공시126%</b> 전세 없음 → 매매−<u>공시가×126%</u>(안전상한)${rN?` · <b>율추정</b> 매매×평균전세가율(${avgRate!=null?Math.round(avgRate*100):'–'}%)`:''}</div>`;
   lastDeals=[]; renderMap(); showJibunSummary();
 }
 
@@ -651,7 +693,7 @@ function showJibunSummary(){
       <div style="margin-top:7px;font-size:12px;color:var(--sub)">평형별 (▸ 선택 면적)</div>
       ${list}
     </div>`;
-    box.style.display=''; return;
+    box.style.display=''; appendGongsi(jb); return;
   }
   // 거래 없는 번지 → 면적 × 동네 중위 평단가로 추정 (매매/전세)
   const pps=lastDeals.map(d=>d._pp).filter(v=>v!=null);
@@ -661,9 +703,62 @@ function showJibunSummary(){
       📍 <b>${ctx.dong} ${jb}</b> — 이 번지 직접 거래는 없어요 · <span style="color:var(--sub)">추정치</span><br>
       전용 ${area}㎡(${py}평) × 동네 중위 <b>${mid.toLocaleString()}만/평</b> ≈ <b>${fmtEok(est)}</b> <span style="color:var(--sub)">(${KNAME[kind]} 유사 ${pps.length}건 기준)</span>
     </div>`;
-    box.style.display=''; return;
+    box.style.display=''; appendGongsi(jb); return;
   }
   box.style.display='none';
+}
+
+// 동시성 제한 실행 풀
+async function pool(items, n, fn){
+  let i=0;
+  const work=async()=>{ while(i<items.length){ const idx=i++; await fn(items[idx], idx); } };
+  await Promise.all(Array.from({length:Math.min(n, items.length)}, work));
+}
+// ---- 공동주택 공시가격 (vWorld) ----
+let gongsiCache={}, gYear=null;
+const G_CANDIDATES=['2026','2025','2024'];
+function pnuOf(jb){
+  if(!ctx || !ctx.lawd10 || ctx.lawd10.length<10 || !jb) return '';
+  const m=String(jb).match(/^(\d+)(?:-(\d+))?$/); if(!m) return '';
+  const bon=String(m[1]).padStart(4,'0').slice(-4), bu=String(m[2]||'0').padStart(4,'0').slice(-4);
+  return ctx.lawd10.slice(0,10)+'1'+bon+bu;   // 11번째 자리 1=일반(토지)
+}
+async function fetchGongsi(pnu){
+  if(gongsiCache[pnu]) return gongsiCache[pnu];
+  const years = gYear ? [gYear] : G_CANDIDATES;
+  for(const y of years){
+    try{ const r=await fetch(`${PROXY}/api/gongsi?pnu=${pnu}&year=${y}`); const j=await r.json();
+      if(j.items && j.items.length){ gYear=y; return (gongsiCache[pnu]={year:y, items:j.items}); }
+    }catch(e){}
+  }
+  return (gongsiCache[pnu]={year:gYear||G_CANDIDATES[0], items:[]});
+}
+// 번지 카드에 공시가 + ×126%(전세 안전상한) 라인 추가
+async function appendGongsi(jb){
+  const pnu=pnuOf(jb); if(!pnu) return;
+  const {year, items}=await fetchGongsi(pnu);
+  const box=$('jibunBox'); if(jibunOf($('q_addr').value)!==jb || !box.firstElementChild) return;
+  if(!items.length) return;
+  const ac=pn($('f_area').value), at=pn($('f_areaTol').value)||0;
+  let band, note;
+  if(ac>0){
+    band=items.filter(x=>x.전용면적!=null && Math.abs(x.전용면적-ac)<=at);
+    if(band.length){ note=`전용 ${ac}±${at}㎡`; }
+    else {  // 선택 면적 없음 → 가장 가까운 면적
+      const areas=[...new Set(items.map(x=>x.전용면적).filter(v=>v!=null))];
+      if(!areas.length) return;
+      const near=areas.reduce((a,b)=>Math.abs(b-ac)<Math.abs(a-ac)?b:a);
+      band=items.filter(x=>x.전용면적===near);
+      note=`전용 ${near}㎡ · 선택 ${ac}±${at}㎡ 없어 근접`;
+    }
+  } else { band=items; note='전체 면적'; }
+  const gv=band.map(x=>x.공시가).filter(v=>v!=null); if(!gv.length) return;
+  const valMan=Math.round(median(gv)/10000), safe=Math.round(valMan*1.26);
+  const agg = band.length>1 ? '중위 ' : '';
+  const line=document.createElement('div');
+  line.style.cssText='margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--sub)';
+  line.innerHTML=`🏛️ 공시가 ${year} ${agg}<b>${fmtEok(valMan)}</b> <span style="opacity:.8">(${note} · ${band.length}호)</span> · ×126% 안전 전세상한 <b style="color:var(--accent)">${fmtEok(safe)}</b>`;
+  box.firstElementChild.appendChild(line);
 }
 
 function setStatus(t, err){ const el=$('status'); el.innerHTML=t; el.className='status'+(err?' err':''); }

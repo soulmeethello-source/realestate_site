@@ -32,6 +32,11 @@ const ENDPOINTS = {
   rent:  'https://apis.data.go.kr/1613000/RTMSDataSvcRHRent/getRTMSDataSvcRHRent',
 };
 
+// vWorld 공동주택가격(공시가) — NED 부동산 속성조회 (PNU·기준연도)
+const VWORLD_KEY = process.env.VWORLD_API_KEY || '';
+const VWORLD_DOMAIN = process.env.VWORLD_DOMAIN || 'estate.lifetiming.kr';
+const NED_APT = 'https://api.vworld.kr/ned/data/getApartHousingPriceAttr';
+
 // --- XML <item> 파싱 (의존성 없이) ---
 function parseItems(xml) {
   const items = [];
@@ -64,6 +69,15 @@ function mapTrade(it) {
     번지: it.jibun || '', sggCd: it.sggCd || '',
   };
 }
+// 공동주택 공시가격 item → 깔끔한 스키마
+function mapGongsi(it) {
+  return {
+    연도: it.stdrYear || '', 공시가: num(it.pblntfPc), 전용면적: num(it.prvuseAr),
+    번지: it.mnnmSlno || '', 건물명: it.aphusNm || '', 유형: it.aphusSeCodeNm || '',
+    동: it.dongNm || '', 호: it.hoNm || '', 층: num(it.floorNm),
+    법정동: it.ldCodeNm || '', pnu: it.pnu || '',
+  };
+}
 // 전월세 item → 깔끔한 스키마 (월세 0 = 전세)
 function mapRent(it) {
   return {
@@ -80,7 +94,30 @@ const server = http.createServer(async (req, res) => {
   const send = (code, obj) => { res.statusCode = code; res.setHeader('Content-Type', 'application/json; charset=utf-8'); res.end(JSON.stringify(obj)); };
   const u = new URL(req.url, 'http://localhost');
 
-  if (u.pathname === '/health') { send(200, { ok: true, keyLoaded: !!KEY }); return; }
+  if (u.pathname === '/health') { send(200, { ok: true, keyLoaded: !!KEY, vworld: !!VWORLD_KEY }); return; }
+
+  // 공동주택 공시가격 (vWorld NED)
+  if (u.pathname === '/api/gongsi') {
+    if (!VWORLD_KEY) { send(500, { error: 'VWORLD_API_KEY 미설정 — .env 를 확인하세요' }); return; }
+    const pnu = u.searchParams.get('pnu');
+    if (!pnu) { send(400, { error: 'pnu(19자리) 파라미터 필요' }); return; }
+    const year = u.searchParams.get('year') || '';
+    const rows = u.searchParams.get('rows') || '1000';
+    let apiUrl = `${NED_APT}?key=${encodeURIComponent(VWORLD_KEY)}&domain=${encodeURIComponent(VWORLD_DOMAIN)}&pnu=${encodeURIComponent(pnu)}&format=json&numOfRows=${rows}&pageNo=1`;
+    if (year) apiUrl += `&stdrYear=${encodeURIComponent(year)}`;
+    try {
+      const r = await fetch(apiUrl);
+      const j = await r.json();
+      if (u.searchParams.get('raw')) { send(r.status, j); return; }
+      const ah = j.apartHousingPrices || (j.response || {}).apartHousingPrices || {};
+      const raw = ah.field || [];
+      const items = (Array.isArray(raw) ? raw : [raw]).map(mapGongsi);
+      send(200, { ok: true, pnu, year, count: items.length, items });
+    } catch (e) {
+      send(502, { error: 'vWorld 호출 실패: ' + String(e) });
+    }
+    return;
+  }
 
   const kind = u.pathname === '/api/rh' ? 'trade' : u.pathname === '/api/rh-rent' ? 'rent' : null;
   if (kind) {
