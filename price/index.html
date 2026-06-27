@@ -616,10 +616,9 @@ async function renderGap(saleD, jeonD){
       b._safe=null;
       if(b.동===ctx.dong){
         const pnu=pnuOf(b.번지);
-        if(pnu){ const g=await fetchGongsi(pnu); let items=g.items;
-          if(ac>0){ const bnd=items.filter(x=>x.전용면적!=null && Math.abs(x.전용면적-ac)<=at); if(bnd.length)items=bnd; }
-          const gv=items.map(x=>x.공시가).filter(v=>v!=null);
-          if(gv.length){ b._gman=Math.round(median(gv)/10000); b._safe=Math.round(b._gman*1.26); }
+        if(pnu){ const g=await fetchGongsi(pnu);
+          const won=gongsiMedianFor(g.items, aMed(b)||ac, at);   // 이 건물 실거래 면적 우선, 없으면 근접
+          if(won!=null){ b._gman=Math.round(won/10000); b._safe=Math.round(b._gman*1.26); }
         }
       }
       done++; if(done%5===0||done===estB.length) setStatus(`공시가 조회 중… (${done}/${estB.length})`);
@@ -744,6 +743,18 @@ async function fetchGongsi(pnu){
   const out={year:gYear||G_CANDIDATES[0], items:[]};
   if(!sawErr) gongsiCache[pnu]=out;   // 진짜 0건이면 캐시 / 에러였으면 캐시 안 함(재시도 여지)
   return out;
+}
+// 목표 면적에 맞는 공시가 중위(원). 없으면 가장 가까운 면적으로 폴백.
+function gongsiMedianFor(items, target, tol){
+  if(!items || !items.length) return null;
+  let band = (target>0) ? items.filter(x=>x.전용면적!=null && Math.abs(x.전용면적-target)<=tol) : items;
+  if(!band.length){
+    const areas=[...new Set(items.map(x=>x.전용면적).filter(v=>v!=null))];
+    if(target>0 && areas.length){ const near=areas.reduce((a,b)=>Math.abs(b-target)<Math.abs(a-target)?b:a); band=items.filter(x=>x.전용면적===near); }
+    else band=items;
+  }
+  const gv=band.map(x=>x.공시가).filter(v=>v!=null);
+  return gv.length ? median(gv) : null;
 }
 // 번지 카드에 공시가 + ×126%(전세 안전상한) 라인 추가
 async function appendGongsi(jb){
