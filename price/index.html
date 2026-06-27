@@ -461,7 +461,7 @@ document.querySelectorAll('th[data-k]').forEach(th=>th.addEventListener('click',
 
 // ---- SVG 차트 (평단가 scatter + 분기 중위 line) ----
 function drawChart(deals){
-  const W=900,H=340, padL=58,padR=16,padT=16,padB=34;
+  const W=900,H=340, padL=70,padR=16,padT=16,padB=42;
   const pts=deals.filter(d=>d._y && d.계약).map(d=>({t:new Date(d.계약).getTime(), y:d._y, q:d.계약.slice(0,7)}));
   const svg=$('chart');
   if(!pts.length){ svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--sub)">표시할 데이터가 없습니다</text>`; return; }
@@ -475,12 +475,12 @@ function drawChart(deals){
   const yticks=4;
   for(let i=0;i<=yticks;i++){ const v=yMin+(yMax-yMin)*i/yticks, y=Y(v);
     s+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--line)" stroke-width="1"/>`;
-    s+=`<text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--sub)">${Math.round(v).toLocaleString()}</text>`;
+    s+=`<text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="16" fill="var(--sub)">${Math.round(v).toLocaleString()}</text>`;
   }
   // x 라벨 (연-월, 최대 6개)
   const span=tMax-tMin, xticks=Math.min(6, Math.max(2, Math.round(span/(86400000*120))));
   for(let i=0;i<=xticks;i++){ const t=tMin+span*i/xticks, x=X(t), dt=new Date(t);
-    s+=`<text x="${x}" y="${H-padB+18}" text-anchor="middle" font-size="11" fill="var(--sub)">${String(dt.getFullYear()).slice(2)}.${String(dt.getMonth()+1).padStart(2,'0')}</text>`;
+    s+=`<text x="${x}" y="${H-padB+18}" text-anchor="middle" font-size="16" fill="var(--sub)">${String(dt.getFullYear()).slice(2)}.${String(dt.getMonth()+1).padStart(2,'0')}</text>`;
   }
   // 분기 중위 라인
   const qmap={};
