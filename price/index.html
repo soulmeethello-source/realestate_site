@@ -132,6 +132,17 @@ td.l,th.l{ text-align:left; }
           <button data-k="gap">갭(매매−전세)</button>
         </span>
       </div>
+      <div class="row" style="gap:6px;">
+        <span class="lbl">전용면적</span>
+        <input type="text" id="f_area" inputmode="decimal" placeholder="중심 ㎡" style="width:84px;padding:8px 10px;">
+        <span class="lbl">±</span>
+        <input type="text" id="f_areaTol" inputmode="decimal" placeholder="오차" style="width:60px;padding:8px 10px;">
+        <span class="lbl" style="margin-left:12px;">건축연도</span>
+        <input type="text" id="f_yr" inputmode="numeric" placeholder="중심" style="width:78px;padding:8px 10px;">
+        <span class="lbl">±</span>
+        <input type="text" id="f_yrTol" inputmode="numeric" placeholder="오차" style="width:60px;padding:8px 10px;">
+        <span class="lbl" style="color:#aaa;">(선택)</span>
+      </div>
     </div>
     <div class="status" id="status">주소를 입력하고 <b>조회</b>를 누르세요.</div>
     <div class="warn" id="proxyWarn" style="display:none;">
@@ -268,6 +279,18 @@ function lastMonths(n){
 }
 const fmtEok = won => won>=10000 ? (won/10000).toFixed(won>=100000?0:1).replace(/\.0$/,'')+'억' : won.toLocaleString()+'만';
 const median = arr => { if(!arr.length) return null; const s=[...arr].sort((a,b)=>a-b), m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+const pn = v => { const x=parseFloat(String(v||'').replace(/[^0-9.]/g,'')); return isNaN(x)?0:x; };
+// 전용면적·건축연도 필터 (중심±오차, 값 비우면 미적용)
+function filterAY(arr){
+  const ac=pn($('f_area').value), at=pn($('f_areaTol').value);
+  const yc=pn($('f_yr').value), yt=pn($('f_yrTol').value);
+  if(!ac && !yc) return arr;
+  return arr.filter(d=>{
+    if(ac>0 && (d.전용면적==null || d.전용면적<ac-at || d.전용면적>ac+at)) return false;
+    if(yc>0 && (d.건축년도==null || d.건축년도<yc-yt || d.건축년도>yc+yt)) return false;
+    return true;
+  });
+}
 
 // ---- 월별 실거래 수집 (동시 6) ----
 async function fetchMonths(lawd, months, ep, onProg){
@@ -362,8 +385,8 @@ function sourceRaw(){
 // ---- 범위(법정동/반경) 적용 ----
 async function applyScope(){
   if(kind==='gap'){ await applyGap(); return; }
-  const src = sourceRaw();
-  if(!src.length){ setStatus('해당 기간 실거래가 없습니다.', true); $('split').style.display='none'; return; }
+  const src = filterAY(sourceRaw());
+  if(!src.length){ setStatus('조건에 맞는 실거래가 없어요 (면적/연식/기간 확인).', true); $('split').style.display='none'; return; }
   let deals;
   if(scope==='dong'){
     deals = src.filter(d=>d.동===ctx.dong);
@@ -511,7 +534,7 @@ async function renderMap(){
 
 // ---- 갭(매매-전세, 같은 번지) ----
 async function applyGap(){
-  const sale=rawCache.sale||[], jeon=(rawCache.rent||[]).filter(d=>d.월세===0);
+  const sale=filterAY(rawCache.sale||[]), jeon=filterAY((rawCache.rent||[]).filter(d=>d.월세===0));
   let saleD, jeonD;
   if(scope==='dong'){ saleD=sale.filter(d=>d.동===ctx.dong); jeonD=jeon.filter(d=>d.동===ctx.dong); }
   else { const radius=+scope; setStatus('반경 건물 좌표 변환 중…');
@@ -562,6 +585,11 @@ $('seg_kind').querySelectorAll('button').forEach(b=>b.addEventListener('click', 
 }));
 $('q_run').addEventListener('click', run);
 $('q_addr').addEventListener('keydown', e=>{ if(e.key==='Enter') run(); });
+// 면적·연식 필터 입력 → 자동 재적용 (디바운스)
+let ayTimer=null;
+['f_area','f_areaTol','f_yr','f_yrTol'].forEach(id=>$(id).addEventListener('input', ()=>{
+  clearTimeout(ayTimer); ayTimer=setTimeout(async()=>{ if(ctx){ $('q_run').disabled=true; await applyScope(); $('q_run').disabled=false; } }, 400);
+}));
 
 // 다크모드 토글
 function syncIcon(){ $('themeToggle').textContent = document.documentElement.getAttribute('data-theme')==='dark' ? '☀️' : '🌙'; }
