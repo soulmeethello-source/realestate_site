@@ -44,13 +44,13 @@ input[type=text]:focus, select:focus{ border-color:var(--accent); }
 .status{ font-size:13px; color:var(--sub); margin-top:10px; min-height:18px; }
 .status.err{ color:#d33; }
 .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-.stat{ background:var(--bg); border-radius:10px; padding:12px; text-align:center; }
-.stat .v{ font-size:19px; font-weight:800; color:var(--accent); }
+.stat{ background:var(--bg); border-radius:10px; padding:15px 12px; text-align:center; }
+.stat .v{ font-size:25px; font-weight:800; color:var(--accent); }
 .stat .v.green{ color:var(--accent2); }
-.stat .k{ font-size:11.5px; color:var(--sub); margin-top:3px; }
+.stat .k{ font-size:14px; color:var(--sub); margin-top:5px; }
 .chart-wrap{ width:100%; overflow:hidden; }
 svg.chart{ width:100%; height:auto; display:block; }
-.chart-legend{ font-size:11.5px; color:var(--sub); margin-top:6px; text-align:center; }
+.chart-legend{ font-size:14px; color:var(--sub); margin-top:8px; text-align:center; }
 table{ width:100%; border-collapse:collapse; font-size:12.5px; }
 th,td{ padding:8px 6px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; word-break:keep-all; }
 th{ color:var(--sub); font-weight:700; cursor:pointer; user-select:none; position:sticky; top:0; background:var(--card); }
@@ -157,7 +157,7 @@ td.l,th.l{ text-align:left; }
   <div class="card" id="result">
     <div class="stats" id="stats"></div>
     <div class="chart-wrap" style="margin-top:16px;">
-      <svg class="chart" id="chart" viewBox="0 0 900 340" preserveAspectRatio="xMidYMid meet"></svg>
+      <svg class="chart" id="chart" viewBox="0 0 900 372" preserveAspectRatio="xMidYMid meet"></svg>
       <div class="chart-legend" id="chartLegend">● 개별 거래 평단가(만원/평) · ━ 분기 중위값 · 가로축=계약월</div>
     </div>
   </div>
@@ -239,9 +239,9 @@ let lastRaw = [], lastDeals = [];
 let ctx = null, center = null;           // ctx={sido,sigungu,dong,lawd}
 // 거래유형 설정
 const KCFG = {
-  sale:   { ep:'/api/rh',      raw:'sale', amt:d=>d.금액만원, perPyeong:true,  amtLabel:'거래가', ppLabel:'평단가', midLabel:'중위 평단가', legend:'개별 거래 평단가(만원/평)' },
-  jeonse: { ep:'/api/rh-rent', raw:'rent', amt:d=>d.보증금,   perPyeong:true,  amtLabel:'보증금', ppLabel:'평단가', midLabel:'중위 보증금평단가', legend:'전세 보증금 평단가(만원/평)' },
-  wolse:  { ep:'/api/rh-rent', raw:'rent', amt:d=>d.월세,     perPyeong:false, amtLabel:'월세',   ppLabel:'보증금', midLabel:'중위 월세', legend:'월세(만원)' },
+  sale:   { ep:'/api/rh',      raw:'sale', amt:d=>d.금액만원, perPyeong:true,  amtLabel:'거래가', ppLabel:'평단가', midLabel:'중위 평단가', legend:'개별 거래 평단가(만원/평)', yTitle:'평단가 (만원/평)' },
+  jeonse: { ep:'/api/rh-rent', raw:'rent', amt:d=>d.보증금,   perPyeong:true,  amtLabel:'보증금', ppLabel:'평단가', midLabel:'중위 보증금평단가', legend:'전세 보증금 평단가(만원/평)', yTitle:'보증금 평단가 (만원/평)' },
+  wolse:  { ep:'/api/rh-rent', raw:'rent', amt:d=>d.월세,     perPyeong:false, amtLabel:'월세',   ppLabel:'보증금', midLabel:'중위 월세', legend:'월세(만원)', yTitle:'월세 (만원)' },
 };
 const geoCache = new Map();              // 주소 → {lat,lng}|null
 
@@ -425,7 +425,7 @@ function render(){
     ['평균 전용', ars.length?(ars.reduce((s,v)=>s+v,0)/ars.length).toFixed(1)+'㎡':'–', false],
   ].map(s=>`<div class="stat"><div class="v ${s[2]?'green':''}">${s[1]}</div><div class="k">${s[0]}</div></div>`).join('');
   $('split').style.display='flex';
-  $('chartLegend').textContent=`● 개별 거래 ${c.legend} · ━ 분기 중위값 · 가로축=계약월`;
+  $('chartLegend').textContent=`● ${c.legend} · ━ 분기 중위값`;
   $('thAmt').textContent=c.amtLabel; $('thPp').textContent=(kind==='wolse'?'보증금':'평단가');
   document.querySelector('.tbl-scroll').style.display=''; const gb=$('gapBox'); if(gb) gb.style.display='none';
 
@@ -463,10 +463,11 @@ document.querySelectorAll('th[data-k]').forEach(th=>th.addEventListener('click',
 
 // ---- SVG 차트 (평단가 scatter + 분기 중위 line) ----
 function drawChart(deals){
-  const W=900,H=340, padL=92,padR=18,padT=18,padB=52;
+  const c=KCFG[kind]||{};
+  const W=900,H=372, padL=112,padR=22,padT=22,padB=66;
   const pts=deals.filter(d=>d._y && d.계약).map(d=>({t:new Date(d.계약).getTime(), y:d._y, q:d.계약.slice(0,7)}));
   const svg=$('chart');
-  if(!pts.length){ svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--sub)">표시할 데이터가 없습니다</text>`; return; }
+  if(!pts.length){ svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="22" fill="var(--sub)">표시할 데이터가 없습니다</text>`; return; }
   const ts=pts.map(p=>p.t), ys=pts.map(p=>p.y);
   let tMin=Math.min(...ts), tMax=Math.max(...ts); if(tMin===tMax){tMin-=2.6e9;tMax+=2.6e9;}
   let yMin=Math.min(...ys), yMax=Math.max(...ys); const yPad=(yMax-yMin)*0.1||yMax*0.1||100; yMin=Math.max(0,yMin-yPad); yMax=yMax+yPad;
@@ -477,27 +478,32 @@ function drawChart(deals){
   const yticks=4;
   for(let i=0;i<=yticks;i++){ const v=yMin+(yMax-yMin)*i/yticks, y=Y(v);
     s+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--line)" stroke-width="1"/>`;
-    s+=`<text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="22" fill="var(--sub)">${Math.round(v).toLocaleString()}</text>`;
+    s+=`<text x="${padL-10}" y="${y+7}" text-anchor="end" font-size="21" fill="var(--sub)">${Math.round(v).toLocaleString()}</text>`;
   }
-  // x 라벨 (연-월, 최대 6개)
+  // x 라벨 (연-월) — 양 끝은 start/end 정렬로 y축 라벨과 안 겹치게
   const span=tMax-tMin, xticks=Math.min(6, Math.max(2, Math.round(span/(86400000*120))));
   for(let i=0;i<=xticks;i++){ const t=tMin+span*i/xticks, x=X(t), dt=new Date(t);
-    s+=`<text x="${x}" y="${H-padB+18}" text-anchor="middle" font-size="22" fill="var(--sub)">${String(dt.getFullYear()).slice(2)}.${String(dt.getMonth()+1).padStart(2,'0')}</text>`;
+    const anc=i===0?'start':i===xticks?'end':'middle';
+    s+=`<text x="${x}" y="${H-padB+26}" text-anchor="${anc}" font-size="21" fill="var(--sub)">${String(dt.getFullYear()).slice(2)}.${String(dt.getMonth()+1).padStart(2,'0')}</text>`;
   }
+  // 축 이름
+  const cy=(padT+(H-padB))/2;
+  s+=`<text transform="rotate(-90 26 ${cy})" x="26" y="${cy}" text-anchor="middle" font-size="20" font-weight="600" fill="var(--sub)">${c.yTitle||''}</text>`;
+  s+=`<text x="${(padL+W-padR)/2}" y="${H-10}" text-anchor="middle" font-size="20" font-weight="600" fill="var(--sub)">계약월</text>`;
   // 분기 중위 라인
   const qmap={};
   pts.forEach(p=>{ const d=new Date(p.t); const q=`${d.getFullYear()}Q${Math.floor(d.getMonth()/3)}`; (qmap[q]=qmap[q]||[]).push(p); });
   const line=Object.values(qmap).map(arr=>({t:median(arr.map(p=>p.t)), y:median(arr.map(p=>p.y))})).sort((a,b)=>a.t-b.t);
-  if(line.length>1){ s+=`<polyline fill="none" stroke="var(--accent)" stroke-width="2.5" points="${line.map(p=>`${X(p.t).toFixed(1)},${Y(p.y).toFixed(1)}`).join(' ')}"/>`; }
+  if(line.length>1){ s+=`<polyline fill="none" stroke="var(--accent)" stroke-width="3" points="${line.map(p=>`${X(p.t).toFixed(1)},${Y(p.y).toFixed(1)}`).join(' ')}"/>`; }
   // scatter (1500개 초과 시 다운샘플)
   let circ=pts; if(pts.length>1500){ const step=Math.ceil(pts.length/1500); circ=pts.filter((_,i)=>i%step===0); }
-  circ.forEach(p=>{ s+=`<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="3" fill="var(--accent2)" fill-opacity="0.5"/>`; });
+  circ.forEach(p=>{ s+=`<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="6" fill="var(--accent2)" fill-opacity="0.55"/>`; });
   svg.innerHTML=s;
 }
 
 // ---- 갭 산점도 (가로=전세가율%, 세로=갭) ----
 function drawGapChart(rows){
-  const W=900,H=340, padL=92,padR=18,padT=18,padB=52;
+  const W=900,H=372, padL=112,padR=22,padT=22,padB=66;
   const svg=$('chart');
   const pts=rows.filter(r=>r.율>0 && r.갭!=null).map(r=>({x:r.율, y:r.갭}));
   if(!pts.length){ svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="22" fill="var(--sub)">표시할 갭 데이터가 없습니다</text>`; return; }
@@ -509,12 +515,17 @@ function drawGapChart(rows){
   let s='';
   for(let i=0;i<=4;i++){ const v=yMin+(yMax-yMin)*i/4, y=Y(v);
     s+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--line)" stroke-width="1"/>`;
-    s+=`<text x="${padL-6}" y="${y+7}" text-anchor="end" font-size="22" fill="var(--sub)">${(v/10000).toFixed(1)}억</text>`;
+    s+=`<text x="${padL-10}" y="${y+7}" text-anchor="end" font-size="21" fill="var(--sub)">${(v/10000).toFixed(1)}억</text>`;
   }
   for(let i=0;i<=5;i++){ const v=xMin+(xMax-xMin)*i/5, x=X(v);
-    s+=`<text x="${x}" y="${H-padB+22}" text-anchor="middle" font-size="22" fill="var(--sub)">${Math.round(v)}%</text>`;
+    const anc=i===0?'start':i===5?'end':'middle';
+    s+=`<text x="${x}" y="${H-padB+26}" text-anchor="${anc}" font-size="21" fill="var(--sub)">${Math.round(v)}%</text>`;
   }
-  pts.forEach(p=>{ s+=`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="4" fill="var(--accent2)" fill-opacity="0.55"/>`; });
+  // 축 이름
+  const cy=(padT+(H-padB))/2;
+  s+=`<text transform="rotate(-90 26 ${cy})" x="26" y="${cy}" text-anchor="middle" font-size="20" font-weight="600" fill="var(--sub)">갭 (매매−전세, 억)</text>`;
+  s+=`<text x="${(padL+W-padR)/2}" y="${H-10}" text-anchor="middle" font-size="20" font-weight="600" fill="var(--sub)">전세가율 (%)</text>`;
+  pts.forEach(p=>{ s+=`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="7" fill="var(--accent2)" fill-opacity="0.55"/>`; });
   svg.innerHTML=s;
 }
 
