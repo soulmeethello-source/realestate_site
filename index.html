@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>부동산 사이트 모음</title>
-    <meta name="description" content="부동산 투자자가 만든 부동산 사이트 핵심 모음 · 경매 수익률 계산기 · 수도권 빌라 거래량 분석">
-    <meta property="og:title" content="부동산 사이트 모음">
-    <meta property="og:description" content="부동산 투자자가 만든 부동산 사이트 핵심 모음 · 경매 수익률 계산기 · 수도권 빌라 거래량 분석">
+    <title>부동산 사이트 모음 - 빌라 시세 조회, 빌라 거래량 분석, 경매 수익률 계산기</title>
+    <meta name="description" content="부동산 투자자가 만든 부동산 사이트 핵심 모음 · 빌라 시세 조회 · 빌라 거래량 분석 · 경매 수익률 계산기">
+    <meta property="og:title" content="부동산 사이트 모음 - 빌라 시세 조회, 빌라 거래량 분석, 경매 수익률 계산기">
+    <meta property="og:description" content="부동산 투자자가 만든 부동산 사이트 핵심 모음 · 빌라 시세 조회 · 빌라 거래량 분석 · 경매 수익률 계산기">
     <meta property="og:url" content="https://estate.lifetiming.kr/">
     <meta property="og:type" content="website">
     <meta name="google-site-verification" content="Hve98Y236wrcVHtpsusV4sJ6zMrARlYV5LKgk1j-cIs" />
@@ -34,7 +34,7 @@
 
         /* Header */
         .header {
-            background: linear-gradient(135deg, #0051d5 0%, #007AFF 100%);
+            background: linear-gradient(135deg, #0a84ff 0%, #0a8a52 100%);
             color: #fff;
             padding: 48px 24px 40px;
             text-align: center;
@@ -54,7 +54,7 @@
         .header-links {
             margin: 18px auto 0;
             display: flex;
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
             justify-content: center;
             gap: 8px;
         }
@@ -376,7 +376,9 @@
         <p>부동산 투자자가 만든 부동산 사이트 핵심 모음</p>
         <div class="header-links">
             <a href="/auction/" class="home-link">&#129518; 경매 수익률 계산기</a>
-            <a href="/ranking/" class="home-link">&#127962; 수도권 빌라 거래량</a>
+            <a href="/ranking/" class="home-link">🏘️ 수도권 빌라 거래량</a>
+            <a href="/price/" class="home-link">&#128200; 빌라 시세조회</a>
+            <a href="/map/" class="home-link">🗺️ 빌라 지도</a>
             <button type="button" id="shareBtn" class="home-link">🔗 공유하기</button>
         </div>
     </div>
@@ -553,9 +555,17 @@
             <h2 class="category-title">
                 <span class="category-icon">&#128202;</span>
                 데이터/통계
-                <span class="category-count">4개 사이트</span>
+                <span class="category-count">5개 사이트</span>
             </h2>
             <div class="cards-grid">
+                <a href="/map/" class="site-card" data-name="수도권 빌라 지도" data-desc="시군구별 빌라 거래량·회전율 색지도">
+                    <div class="site-card-header">
+                        <span class="site-name">수도권 빌라 지도 🆕</span>
+                        <span class="external-icon">&#8599;</span>
+                    </div>
+                    <div class="site-desc">시군구별 빌라 거래량·회전율 색지도</div>
+                    <div class="site-url">자체 도구</div>
+                </a>
                 <a href="https://data.kbland.kr/" target="_blank" rel="noopener" class="site-card" data-name="KB부동산 데이터허브" data-desc="KB주택가격동향, 주택공급실적, 미분양현황">
                     <div class="site-card-header">
                         <span class="site-name">KB부동산 데이터허브</span>
@@ -609,7 +619,7 @@
                 </a>
                 <a href="https://www.realtyprice.kr/notice/main/main.do" target="_blank" rel="noopener" class="site-card" data-name="부동산 공시가격 알리미" data-desc="주택공시가격, 토지 공시지가 열람">
                     <div class="site-card-header">
-                        <span class="site-name">🆕 부동산 공시가격 알리미</span>
+                        <span class="site-name">부동산 공시가격 알리미 🆕</span>
                         <span class="external-icon">&#8599;</span>
                     </div>
                     <div class="site-desc">주택공시가격, 토지 공시지가 열람</div>
@@ -737,7 +747,7 @@
                 </a>
                 <a href="https://renewal.incheon.go.kr/ires/index.do" target="_blank" rel="noopener" class="site-card" data-name="인천광역시 추정분담금 정보시스템" data-desc="인천광역시 재개발재건축 추진현황, 추정분담금">
                     <div class="site-card-header">
-                        <span class="site-name">🆕 인천 추정분담금 정보시스템</span>
+                        <span class="site-name">인천 추정분담금 정보시스템 🆕</span>
                         <span class="external-icon">&#8599;</span>
                     </div>
                     <div class="site-desc">인천광역시 재개발재건축 추진현황</div>
@@ -769,7 +779,7 @@
                 </a>
                 <a href="https://www.eum.go.kr/web/gs/gv/gvGosiList.jsp" target="_blank" rel="noopener" class="site-card" data-name="재개발 지형도면 고시" data-desc="사업명에 구역명 검색 후 구역계 확인">
                     <div class="site-card-header">
-                        <span class="site-name">🆕 재개발 지형도면 고시</span>
+                        <span class="site-name">재개발 지형도면 고시 🆕</span>
                         <span class="external-icon">&#8599;</span>
                     </div>
                     <div class="site-desc">사업명에 구역명 검색 후 구역계 확인</div>
@@ -777,7 +787,7 @@
                 </a>
                 <a href="https://map.ngii.go.kr/ms/map/NlipMap.do" target="_blank" rel="noopener" class="site-card" data-name="국토정보맵" data-desc="1989년 1월 24일 당시 무허가 건축물 증빙자료">
                     <div class="site-card-header">
-                        <span class="site-name">🆕 국토정보맵</span>
+                        <span class="site-name">국토정보맵 🆕</span>
                         <span class="external-icon">&#8599;</span>
                     </div>
                     <div class="site-desc">1989.1.24 당시 무허가 건축물 증빙자료</div>
@@ -982,7 +992,7 @@
     </div>
 
     <footer class="footer">
-        부동산 사이트 모음 &copy; 2026 &middot; 총 49개 사이트 &middot; 최종 업데이트: 2026.6.23
+        부동산 사이트 모음 &copy; 2026 &middot; 총 50개 사이트 &middot; 최종 업데이트: 2026.6.27
         <div class="footer-contact">
             사이트 추가, 기능 건의, 오류 제보 &middot; <a href="mailto:chiyohappy@gmail.com?subject=%5B%EB%B6%80%EB%8F%99%EC%82%B0%20%EC%82%AC%EC%9D%B4%ED%8A%B8%20%EB%AA%A8%EC%9D%8C%5D">chiyohappy@gmail.com</a>
         </div>

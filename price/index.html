@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>빌라 실거래가 시세 — 법정동·반경별 그래프</title>
+<title>빌라 시세조회 — 법정동·반경별 실거래가 그래프·지도</title>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SEL6E8JPDG"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-SEL6E8JPDG');
+    </script>
 <meta name="description" content="국토교통부 실거래가 기준 빌라(연립다세대) 시세를 법정동 또는 반경(100m·500m·1km)으로 그래프와 표로 분석">
 <script>(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
 <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=99aa4b0534f3b150d7f753993c769480&libraries=services&autoload=false"></script>
@@ -13,12 +21,13 @@
 *{box-sizing:border-box;}
 body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; background:var(--bg); color:var(--ink); -webkit-text-size-adjust:100%; }
 .wrap{ max-width:1080px; margin:0 auto; padding:18px 16px 60px; }
-header.top{ background:linear-gradient(135deg,#0a84ff,#0a8a52); color:#fff; padding:22px 16px; }
-header.top .inner{ max-width:1080px; margin:0 auto; }
-header.top h1{ margin:0; font-size:20px; font-weight:800; letter-spacing:-0.4px; }
-header.top p{ margin:6px 0 0; font-size:13px; opacity:0.92; }
-.home-row{ max-width:1080px; margin:0 auto; padding:10px 16px 0; display:flex; gap:8px; flex-wrap:wrap; }
-.home-link{ font-size:12.5px; color:var(--accent); text-decoration:none; border:1px solid var(--line); background:var(--card); padding:6px 11px; border-radius:8px; font-weight:600; }
+.header{ background:linear-gradient(135deg, #0a84ff 0%, #0a8a52 100%); color:#fff; padding:34px 16px 28px; text-align:center; }
+.header h1{ margin:0; font-size:32px; font-weight:700; }
+.header p{ margin:8px 0 0; font-size:15px; opacity:0.85; }
+.header-links{ margin:16px auto 0; display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+.header .home-link{ display:inline-flex; align-items:center; font-size:13px; color:#fff; background:rgba(255,255,255,0.18); padding:7px 14px; border-radius:20px; text-decoration:none; white-space:nowrap; border:none; cursor:pointer; font-family:inherit; transition:background .2s; }
+.header .home-link:hover{ background:rgba(255,255,255,0.3); }
+@media(max-width:480px){ .header h1{ font-size:24px; } .header .home-link{ font-size:11.5px; padding:6px 10px; } .header-links{ gap:5px; } }
 .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:14px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
 .controls{ display:grid; grid-template-columns:1fr; gap:10px; }
 .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
@@ -50,6 +59,9 @@ td.l,th.l{ text-align:left; }
 .muted{ color:var(--sub); }
 .theme-toggle{ position:fixed; top:12px; right:14px; z-index:200; width:40px; height:40px; border-radius:50%; border:1px solid rgba(255,255,255,0.5); background:rgba(255,255,255,0.18); color:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
 .footer{ text-align:center; font-size:12px; color:var(--sub); margin-top:30px; padding-top:16px; border-top:1px solid var(--line); }
+.footer a{ color:var(--accent); text-decoration:none; }
+.footer a:hover{ text-decoration:underline; }
+.footer-contact{ margin-top:8px; font-size:13px; }
 .hint{ font-size:12px; color:var(--sub); margin-top:8px; line-height:1.5; }
 .warn{ background:#fff7e6; border:1px solid #ffe1a8; color:#8a5a00; padding:10px 12px; border-radius:9px; font-size:12.5px; margin-top:10px; }
 [data-theme="dark"] .warn{ background:#2a2410; border-color:#4a3d18; color:#e0c074; }
@@ -70,14 +82,15 @@ td.l,th.l{ text-align:left; }
 </head>
 <body>
 <button class="theme-toggle" id="themeToggle" title="다크모드">🌙</button>
-<header class="top"><div class="inner">
-  <h1>🏘️ 빌라 실거래가 시세</h1>
-  <p>국토교통부 실거래가 기준 · 연립다세대(빌라) · 법정동 또는 반경(100m·500m·1km)별 그래프·표</p>
-</div></header>
-<div class="home-row">
-  <a href="/" class="home-link">← 부동산 사이트 모음</a>
-  <a href="/auction/" class="home-link">경매 수익률 계산기</a>
-  <a href="/ranking/" class="home-link">빌라 거래량 랭킹</a>
+<div class="header">
+  <h1>빌라 시세조회</h1>
+  <p>국토교통부 실거래가 기준 · 연립다세대(빌라) · 법정동·반경(100m·500m·1km)별 그래프·표</p>
+  <div class="header-links">
+    <a class="home-link" href="/">← 부동산 사이트 모음</a>
+    <a class="home-link" href="/auction/">🧮 경매 수익률 계산기</a>
+    <a class="home-link" href="/ranking/">🏘️ 수도권 빌라 거래량</a>
+    <a class="home-link" href="/map/">🗺️ 빌라 지도</a>
+  </div>
 </div>
 
 <div class="wrap">
@@ -154,10 +167,17 @@ td.l,th.l{ text-align:left; }
   </div><!-- /split -->
 
   <div class="footer">
-    국토교통부 실거래가 공개시스템(RTMS) 기반 · 빌라(연립다세대) 매매 · 로컬 프로토타입<br>
+    국토교통부 실거래가 공개시스템(RTMS) 기반 · 빌라(연립다세대) 매매<br>
     호가가 아닌 실거래 기준입니다. 표본이 적은 동/반경은 변동성이 큽니다.
+    <div class="footer-contact">사이트 추가, 기능 건의, 오류 제보 &middot; <a href="mailto:chiyohappy@gmail.com?subject=%5B%EB%B6%80%EB%8F%99%EC%82%B0%20%EC%82%AC%EC%9D%B4%ED%8A%B8%20%EB%AA%A8%EC%9D%8C%5D">chiyohappy@gmail.com</a></div>
+    <div class="footer-contact">오늘 조회수: <span id="visitor-today">-</span></div>
+    <div class="footer-contact">누적 조회수: <span id="visitor-total">-</span></div>
   </div>
 </div>
+<script data-goatcounter="https://soulmeethello.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script>
+(function(){var base='https://soulmeethello.goatcounter.com/counter/TOTAL.json',today=new Date().toISOString().slice(0,10);function s(id,u){var r=new XMLHttpRequest();r.addEventListener('load',function(){try{document.getElementById(id).innerText=JSON.parse(this.responseText).count.toLocaleString();}catch(e){}});r.open('GET',u);r.send();}setTimeout(function(){s('visitor-total',base);s('visitor-today',base+'?start='+today);},1000);})();
+</script>
 
 <script>
 // 로컬은 proxy/server.js(8787), 라이브는 Vercel 서버리스 함수(/api) 자동 사용

@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>경매 수익률 계산기 | 낙찰가·세후순익 분석기</title>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SEL6E8JPDG"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-SEL6E8JPDG');
+    </script>
     <meta name="description" content="부동산 경매 수익률·세후순익·목표 낙찰가 역산 분석기">
     <meta property="og:title" content="경매 수익률 계산기">
     <meta property="og:description" content="레버리지·세금 반영 순수익 분석 + 목표 낙찰가 역산">
@@ -16,11 +24,11 @@
             background: #f5f6f8; color: #333; line-height: 1.6;
         }
         .header {
-            background: linear-gradient(135deg, #0051d5 0%, #007AFF 100%);
+            background: linear-gradient(135deg, #0a84ff 0%, #0a8a52 100%);
             color: #fff; padding: 44px 24px 56px; text-align: center;
         }
-        .header h1 { font-size: 30px; font-weight: 700; margin-bottom: 8px; }
-        .header p { font-size: 14px; opacity: 0.85; }
+        .header h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+        .header p { font-size: 15px; opacity: 0.85; }
         .header .home-link {
             display: inline-flex; align-items: center; font-size: 13px; color: #fff;
             background: rgba(255,255,255,0.18); padding: 7px 14px; border-radius: 20px;
@@ -29,7 +37,7 @@
         }
         .header .home-link:hover { background: rgba(255,255,255,0.3); }
         .header-links { margin: 14px auto 0; display: flex; flex-wrap: nowrap; justify-content: center; gap: 8px; }
-        @media (max-width: 480px) { .header .home-link { font-size: 11.5px; padding: 6px 10px; } .header-links { gap: 5px; } }
+        @media (max-width: 480px) { .header h1 { font-size: 24px; } .header .home-link { font-size: 11.5px; padding: 6px 10px; } .header-links { gap: 5px; } }
 
         .container { max-width: 1140px; margin: 0 auto; padding: 0 20px 64px; }
 
@@ -305,6 +313,7 @@
         <div class="header-links">
             <a class="home-link" href="/">← 부동산 사이트 모음</a>
             <a class="home-link" href="/ranking/">🏘️ 수도권 빌라 거래량</a>
+            <a class="home-link" href="/map/">🗺️ 빌라 지도</a>
             <button type="button" class="home-link" id="shareBtn">🔗 공유하기</button>
         </div>
     </div>
