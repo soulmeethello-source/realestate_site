@@ -315,9 +315,9 @@
                     if(!s || !s.cnt[i]) return null;
                     return `${b}: 중앙 ${won(s.med[i])} · 최저~최고 ${won(s.lo[i])}~${won(s.hi[i])} · ${s.cnt[i]}건`;
                 } } } },
-            scales:{ x:{ stacked:true, ticks:{autoSkip:true,maxTicksLimit:window.innerWidth<600?7:14,maxRotation:45,minRotation:45,font:{size:10}} },
-                     y:{ position:'left', ticks:{callback:v=>(v/10000).toFixed(1)+'억'} },
-                     y1:{ position:'right', stacked:true, min:0, max:cntMax2*3, grid:{drawOnChartArea:false}, ticks:{stepSize:Math.max(1,Math.ceil(cntMax2/4)),callback:v=>v+'건'} } } };
+            scales:{ x:{ stacked:true, title:{display:true,text:'거래월',font:{size:12,weight:'600'},color:'#888'}, ticks:{autoSkip:true,maxTicksLimit:window.innerWidth<600?7:14,maxRotation:45,minRotation:45,font:{size:10}} },
+                     y:{ position:'left', title:{display:true,text:'시세 (억원)',font:{size:12,weight:'600'},color:'#888'}, ticks:{callback:v=>(v/10000).toFixed(1)+'억'} },
+                     y1:{ position:'right', stacked:true, min:0, max:cntMax2*3, grid:{drawOnChartArea:false}, title:{display:true,text:'거래 건수',font:{size:12,weight:'600'},color:'#888'}, ticks:{stepSize:Math.max(1,Math.ceil(cntMax2/4)),callback:v=>v+'건'} } } };
         if(chart2){ chart2.data=d2; chart2.options=o2; chart2.update(); }
         else chart2 = new Chart($('chart2'), {type:'line', data:d2, options:o2});
 
@@ -428,9 +428,9 @@
                 if(ctx.parsed.y==null) return null;
                 return ctx.dataset.label+': '+won(ctx.parsed.y);
             }}}},
-            scales:{ x:{ ticks:{autoSkip:true, maxTicksLimit:window.innerWidth<600?7:14, maxRotation:45, minRotation:45, font:{size:10}} },
-                     y:{ position:'left', min:ymin, max:ymax, ticks:{callback:v=>(v/10000).toFixed(1)+'억'} },
-                     y1:{ position:'right', min:0, max:cntMax*3, grid:{drawOnChartArea:false}, ticks:{stepSize:Math.max(1,Math.ceil(cntMax/4)),callback:v=>v+'건'} } } };
+            scales:{ x:{ title:{display:true,text:'거래월',font:{size:12,weight:'600'},color:'#888'}, ticks:{autoSkip:true, maxTicksLimit:window.innerWidth<600?7:14, maxRotation:45, minRotation:45, font:{size:10}} },
+                     y:{ position:'left', min:ymin, max:ymax, title:{display:true,text:'시세 (억원)',font:{size:12,weight:'600'},color:'#888'}, ticks:{callback:v=>(v/10000).toFixed(1)+'억'} },
+                     y1:{ position:'right', min:0, max:cntMax*3, grid:{drawOnChartArea:false}, title:{display:true,text:'거래 건수',font:{size:12,weight:'600'},color:'#888'}, ticks:{stepSize:Math.max(1,Math.ceil(cntMax/4)),callback:v=>v+'건'} } } };
 
         if(chart){ chart.data=data; chart.options=opts; chart.update(); }
         else chart = new Chart($('chart'), {data, options:opts});

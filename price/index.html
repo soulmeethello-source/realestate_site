@@ -292,6 +292,12 @@ function filterAY(arr){
     return true;
   });
 }
+// 현재 적용된 면적·연식 필터 문구 (없으면 빈 문자열)
+function filterLabel(){
+  const ac=pn($('f_area').value), at=pn($('f_areaTol').value), yc=pn($('f_yr').value), yt=pn($('f_yrTol').value);
+  const p=[]; if(ac>0)p.push(`전용 ${ac}±${at}㎡`); if(yc>0)p.push(`${yc}±${yt}년식`);
+  return p.length?` · ${p.join(' · ')}`:'';
+}
 
 // ---- 월별 실거래 수집 (동시 6) ----
 async function fetchMonths(lawd, months, ep, onProg){
@@ -409,7 +415,7 @@ function render(){
   const scopeTxt = scope==='dong' ? `${ctx.dong} (법정동)` : `반경 ${(+scope)>=1000?(+scope)/1000+'km':scope+'m'}`;
   if(!deals.length){ setStatus(`${scopeTxt} — 실거래 0건. 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
   const c=KCFG[kind], KNAME={sale:'매매',jeonse:'전세',wolse:'월세'};
-  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · ${KNAME[kind]} ${deals.length}건`);
+  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · ${KNAME[kind]} ${deals.length}건${filterLabel()}`);
 
   // 통계
   const ys=deals.map(d=>d._y).filter(v=>v!=null);
@@ -581,13 +587,13 @@ async function applyGap(){
 function renderGap(saleD, jeonD){
   const scopeTxt = scope==='dong'?`${ctx.dong} (법정동)`:`반경 ${(+scope)>=1000?(+scope)/1000+'km':scope+'m'}`;
   const m={};
-  saleD.forEach(d=>{ const k=d.동+' '+d.번지; (m[k]=m[k]||{동:d.동,번지:d.번지,건물명:d.건물명,s:[],j:[]}).s.push(d.금액만원); });
-  jeonD.forEach(d=>{ const k=d.동+' '+d.번지; (m[k]=m[k]||{동:d.동,번지:d.번지,건물명:d.건물명,s:[],j:[]}).j.push(d.보증금); });
+  saleD.forEach(d=>{ const k=d.동+' '+d.번지; const b=(m[k]=m[k]||{동:d.동,번지:d.번지,건물명:d.건물명,s:[],j:[],a:[]}); b.s.push(d.금액만원); if(d.전용면적!=null)b.a.push(d.전용면적); });
+  jeonD.forEach(d=>{ const k=d.동+' '+d.번지; const b=(m[k]=m[k]||{동:d.동,번지:d.번지,건물명:d.건물명,s:[],j:[],a:[]}); b.j.push(d.보증금); if(d.전용면적!=null)b.a.push(d.전용면적); });
   const rows=Object.values(m).filter(b=>b.s.length&&b.j.length)
-    .map(b=>{ const sm=median(b.s), jm=median(b.j); return {건물명:b.건물명||'–', 동:b.동, 매매:sm, 전세:jm, 갭:sm-jm, 율:Math.round(jm/sm*100), n:b.s.length+b.j.length}; })
+    .map(b=>{ const sm=median(b.s), jm=median(b.j); return {건물명:b.건물명||'–', 동:b.동, 전용:b.a.length?+median(b.a).toFixed(1):null, 매매:sm, 전세:jm, 갭:sm-jm, 율:Math.round(jm/sm*100), n:b.s.length+b.j.length}; })
     .sort((a,b)=>b.갭-a.갭);
   if(!rows.length){ setStatus(`${scopeTxt} — 같은 번지에 매매·전세가 모두 있는 건물이 없어 갭 계산 불가. 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
-  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · 갭(매매−전세) ${rows.length}개 건물`);
+  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · 갭(매매−전세) ${rows.length}개 건물${filterLabel()}`);
   const gaps=rows.map(r=>r.갭), rates=rows.map(r=>r.율);
   $('stats').innerHTML=[
     ['갭 건물수', rows.length+'곳', false],
@@ -603,7 +609,7 @@ function renderGap(saleD, jeonD){
   const gb=$('gapBox'); gb.style.display=''; gb.style.maxHeight='520px'; gb.style.overflow='auto';
   const MAX=400, shown=rows.slice(0,MAX);
   $('tblCount').textContent = rows.length>MAX?`표시 ${MAX}/총 ${rows.length}곳`:`${rows.length}곳`;
-  gb.innerHTML=`<table><thead><tr><th class="l">건물</th><th class="l">동</th><th>매매중위</th><th>전세중위</th><th>갭</th><th>전세가율</th><th>건수</th></tr></thead><tbody>${shown.map(r=>`<tr><td class="l">${r.건물명}</td><td class="l">${r.동}</td><td>${fmtEok(r.매매)}</td><td>${fmtEok(r.전세)}</td><td><b>${fmtEok(r.갭)}</b></td><td>${r.율}%</td><td>${r.n}</td></tr>`).join('')}</tbody></table>`;
+  gb.innerHTML=`<table><thead><tr><th class="l">건물</th><th class="l">동</th><th>전용</th><th>매매중위</th><th>전세중위</th><th>갭</th><th>전세가율</th><th>건수</th></tr></thead><tbody>${shown.map(r=>`<tr><td class="l">${r.건물명}</td><td class="l">${r.동}</td><td>${r.전용!=null?r.전용+'㎡':'–'}</td><td>${fmtEok(r.매매)}</td><td>${fmtEok(r.전세)}</td><td><b>${fmtEok(r.갭)}</b></td><td>${r.율}%</td><td>${r.n}</td></tr>`).join('')}</tbody></table>`;
   lastDeals=[]; renderMap(); showJibunSummary();
 }
 
