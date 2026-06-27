@@ -662,12 +662,12 @@
 
         // 명의/전략 시나리오
         const SCENARIOS = [
-            {key:'p1',  name:'개인 양도세',   sub:'1년 미만', entity:'personal', holding:'lt1'},
-            {key:'p2',  name:'개인 양도세',   sub:'1~2년',    entity:'personal', holding:'lt2'},
+            {key:'ex',  name:'1주택 비과세',  sub:'2년 보유',       entity:'personal', holding:'exempt', houseOnly:true},
             {key:'biz1',name:'매매사업자(1주택자)', sub:'종합소득세',        entity:'business', holding:'lt1', bizMulti:false},
             {key:'bizN',name:'매매사업자(다주택자)', sub:'조정지역 비교과세', entity:'business', holding:'lt1', bizMulti:true},
             {key:'corp',name:'법인',          sub:'법인세',         entity:'corp',     holding:'lt1'},
-            {key:'ex',  name:'1주택 비과세',  sub:'2년 보유',       entity:'personal', holding:'exempt', houseOnly:true},
+            {key:'p1',  name:'개인 양도세',   sub:'1년 미만', entity:'personal', holding:'lt1'},
+            {key:'p2',  name:'개인 양도세',   sub:'1~2년',    entity:'personal', holding:'lt2'},
         ];
 
         // ===== helpers =====
