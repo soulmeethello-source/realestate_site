@@ -149,6 +149,7 @@ td.l,th.l{ text-align:left; }
       ⚠️ 로컬 프록시가 꺼져 있어요. 터미널에서 <code>node proxy/server.js</code> 를 실행한 뒤 다시 조회하세요. (국토부 API 키는 .env)
     </div>
     <div class="hint">반경 모드는 거래된 건물 위치를 하나씩 찾아 거리를 계산하므로 첫 조회는 다소 느립니다. (결과는 저장되어 다음부턴 빨라요)</div>
+    <div id="jibunBox" style="display:none; margin-top:12px;"></div>
   </div>
 
   <div class="split" id="split" style="display:none;">
@@ -432,6 +433,7 @@ function render(){
   renderTable();
   $('tblTitle').textContent=`${KNAME[kind]} 실거래 내역 — ${scopeTxt}`;
   renderMap();
+  showJibunSummary();
 }
 
 function renderTable(){
@@ -490,6 +492,29 @@ function drawChart(deals){
   // scatter (1500개 초과 시 다운샘플)
   let circ=pts; if(pts.length>1500){ const step=Math.ceil(pts.length/1500); circ=pts.filter((_,i)=>i%step===0); }
   circ.forEach(p=>{ s+=`<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="3" fill="var(--accent2)" fill-opacity="0.5"/>`; });
+  svg.innerHTML=s;
+}
+
+// ---- 갭 산점도 (가로=전세가율%, 세로=갭) ----
+function drawGapChart(rows){
+  const W=900,H=340, padL=70,padR=16,padT=16,padB=42;
+  const svg=$('chart');
+  const pts=rows.filter(r=>r.율>0 && r.갭!=null).map(r=>({x:r.율, y:r.갭}));
+  if(!pts.length){ svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="16" fill="var(--sub)">표시할 갭 데이터가 없습니다</text>`; return; }
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  let xMin=Math.min(40,...xs), xMax=Math.max(100,...xs);
+  let yMin=Math.min(0,...ys), yMax=Math.max(...ys); const yp=(yMax-yMin)*0.1||100; yMax+=yp;
+  const X=v=>padL+(v-xMin)/(xMax-xMin)*(W-padL-padR);
+  const Y=v=>H-padB-(v-yMin)/(yMax-yMin)*(H-padT-padB);
+  let s='';
+  for(let i=0;i<=4;i++){ const v=yMin+(yMax-yMin)*i/4, y=Y(v);
+    s+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--line)" stroke-width="1"/>`;
+    s+=`<text x="${padL-6}" y="${y+5}" text-anchor="end" font-size="16" fill="var(--sub)">${(v/10000).toFixed(1)}억</text>`;
+  }
+  for(let i=0;i<=5;i++){ const v=xMin+(xMax-xMin)*i/5, x=X(v);
+    s+=`<text x="${x}" y="${H-padB+22}" text-anchor="middle" font-size="16" fill="var(--sub)">${Math.round(v)}%</text>`;
+  }
+  pts.forEach(p=>{ s+=`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="4" fill="var(--accent2)" fill-opacity="0.55"/>`; });
   svg.innerHTML=s;
 }
 
@@ -560,15 +585,33 @@ function renderGap(saleD, jeonD){
     ['중위 매매가', fmtEok(Math.round(median(rows.map(r=>r.매매)))), false],
   ].map(s=>`<div class="stat"><div class="v ${s[2]?'green':''}">${s[1]}</div><div class="k">${s[0]}</div></div>`).join('');
   $('split').style.display='flex';
-  $('chart').innerHTML=`<text x="450" y="170" text-anchor="middle" fill="var(--sub)" font-size="14">갭 = 같은 번지의 매매 중위가 − 전세 중위가 (아래 표 참고)</text>`;
-  $('chartLegend').textContent='전세가율↑ = 갭(투자금)↓ · 같은 번지 매칭 기준';
+  drawGapChart(rows);
+  $('chartLegend').textContent='● 건물별 · 가로=전세가율(%) · 세로=갭(매매−전세) · 우하단일수록 소액 투자 · 같은 번지 매칭';
   $('tblTitle').textContent=`갭 분석 — ${scopeTxt}`;
   document.querySelector('.tbl-scroll').style.display='none';
   const gb=$('gapBox'); gb.style.display=''; gb.style.maxHeight='520px'; gb.style.overflow='auto';
   const MAX=400, shown=rows.slice(0,MAX);
   $('tblCount').textContent = rows.length>MAX?`표시 ${MAX}/총 ${rows.length}곳`:`${rows.length}곳`;
   gb.innerHTML=`<table><thead><tr><th class="l">건물</th><th class="l">동</th><th>매매중위</th><th>전세중위</th><th>갭</th><th>전세가율</th><th>건수</th></tr></thead><tbody>${shown.map(r=>`<tr><td class="l">${r.건물명}</td><td class="l">${r.동}</td><td>${fmtEok(r.매매)}</td><td>${fmtEok(r.전세)}</td><td><b>${fmtEok(r.갭)}</b></td><td>${r.율}%</td><td>${r.n}</td></tr>`).join('')}</tbody></table>`;
-  lastDeals=[]; renderMap();
+  lastDeals=[]; renderMap(); showJibunSummary();
+}
+
+// ---- 입력한 번지(예: 354-1) 거래 요약 ----
+function jibunOf(addr){ const t=(addr||'').trim().split(/\s+/); const last=t[t.length-1]; return /^\d+(-\d+)?$/.test(last)?last:''; }
+function showJibunSummary(){
+  const box=$('jibunBox'); const jb=jibunOf($('q_addr').value);
+  if(!jb || !ctx || kind==='gap'){ box.style.display='none'; return; }
+  const c=KCFG[kind], KNAME={sale:'매매',jeonse:'전세',wolse:'월세'};
+  const hits=sourceRaw().filter(d=>d.동===ctx.dong && d.번지===jb);
+  if(!hits.length){ box.style.display='none'; return; }
+  const recent=[...hits].sort((a,b)=>a.계약<b.계약?1:-1)[0];
+  const amts=hits.map(d=>c.amt(d)).filter(v=>v!=null);
+  box.innerHTML=`<div style="background:var(--card);border:1.5px solid var(--accent);border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.7;">
+    📍 <b>${ctx.dong} ${jb}</b>${recent.건물명?` · ${recent.건물명}`:''} — 이 번지 <b>${KNAME[kind]} ${hits.length}건</b><br>
+    최근 거래 <b>${recent.계약}</b> · <b>${fmtEok(c.amt(recent))}</b>${recent.전용면적?` · 전용 ${recent.전용면적}㎡`:''}${recent.층!=null?` · ${recent.층}층`:''}${recent.건축년도?` · ${recent.건축년도}년식`:''}
+    · 중위 <b>${fmtEok(Math.round(median(amts)))}</b>
+  </div>`;
+  box.style.display='';
 }
 
 function setStatus(t, err){ const el=$('status'); el.innerHTML=t; el.className='status'+(err?' err':''); }
