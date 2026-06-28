@@ -515,7 +515,7 @@ function drawChart(deals){
 function drawGapChart(rows){
   const W=900,H=372, padL=112,padR=22,padT=22,padB=66;
   const svg=$('chart');
-  const pts=rows.filter(r=>r.t && r.갭!=null).map(r=>({t:r.t, y:r.갭, est:!!r.추정}));
+  const pts=rows.filter(r=>r.t && r.갭!=null).map(r=>({t:r.t, y:r.갭, est:!r.실측}));
   if(!pts.length){ svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="22" fill="var(--sub)">표시할 갭 데이터가 없습니다</text>`; return; }
   const ts=pts.map(p=>p.t), ys=pts.map(p=>p.y);
   let tMin=Math.min(...ts), tMax=Math.max(...ts); if(tMin===tMax){tMin-=2.6e9;tMax+=2.6e9;}
@@ -540,6 +540,11 @@ function drawGapChart(rows){
   const cy=(padT+(H-padB))/2;
   s+=`<text transform="rotate(-90 26 ${cy})" x="26" y="${cy}" text-anchor="middle" font-size="20" font-weight="600" fill="var(--sub)">갭 (매매−전세, 억)</text>`;
   s+=`<text x="${(padL+W-padR)/2}" y="${H-10}" text-anchor="middle" font-size="20" font-weight="600" fill="var(--sub)">매매 계약월</text>`;
+  // 분기 중위 갭 라인
+  const qmap={};
+  pts.forEach(p=>{ const d=new Date(p.t); const q=`${d.getFullYear()}Q${Math.floor(d.getMonth()/3)}`; (qmap[q]=qmap[q]||[]).push(p); });
+  const line=Object.values(qmap).map(arr=>({t:median(arr.map(p=>p.t)), y:median(arr.map(p=>p.y))})).sort((a,b)=>a.t-b.t);
+  if(line.length>1){ s+=`<polyline fill="none" stroke="var(--accent)" stroke-width="3" points="${line.map(p=>`${X(p.t).toFixed(1)},${Y(p.y).toFixed(1)}`).join(' ')}"/>`; }
   pts.forEach(p=>{ s+= p.est
     ? `<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="6" fill="none" stroke="var(--accent2)" stroke-width="1.6" stroke-opacity="0.55"/>`
     : `<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="7" fill="var(--accent2)" fill-opacity="0.6"/>`; });
@@ -563,22 +568,22 @@ async function renderMap(){
     const circle=new kakao.maps.Circle({center:C, radius:+scope, strokeWeight:2, strokeColor:'#007AFF', strokeOpacity:0.85, strokeStyle:'solid', fillColor:'#007AFF', fillOpacity:0.06});
     circle.setMap(map); overlays.push(circle);
   }
-  // 갭 모드: 건물별 갭 핀 (초록=실측 · 주황=공시126%)
+  // 갭 모드: 건물별 핀 (매매 중위가 + 매매 거래건수)
   if(kind==='gap'){
     const byG=new Map();
     gapRows.forEach(r=>{ const k=r.동+' '+r.번지; if(!byG.has(k)) byG.set(k,{rows:[],건물명:r.건물명,동:r.동,번지:r.번지}); byG.get(k).rows.push(r); });
-    let gbuilds=[...byG.values()].map(v=>({...v, 갭:Math.round(median(v.rows.map(r=>r.갭))), 추정:v.rows.every(r=>r.추정), recent:v.rows.reduce((a,b)=>a.계약>b.계약?a:b).계약}))
+    let gbuilds=[...byG.values()].map(v=>({...v, 매매:Math.round(median(v.rows.map(r=>r.매매))), n:v.rows.length, recent:v.rows.reduce((a,b)=>a.계약>b.계약?a:b).계약}))
                                  .sort((a,b)=>a.recent<b.recent?1:-1).slice(0,200);
     $('mapHint').textContent='지도 핀 불러오는 중…';
     for(const b of gbuilds){ b.ll=await geocode(`${ctx.sido} ${ctx.sigungu} ${b.동} ${b.번지}`); }
     const gb2=new kakao.maps.LatLngBounds(); gb2.extend(C); let gs=0;
     gbuilds.forEach(b=>{ if(!b.ll) return; const pos=new kakao.maps.LatLng(b.ll.lat, b.ll.lng);
-      const col=b.추정?'#c0883a':'#0a8a52';
-      const ov=new kakao.maps.CustomOverlay({position:pos, content:`<div class="pin" style="background:${col}">${b.추정?'~':''}${fmtEok(b.갭)}</div>`, yAnchor:1, clickable:true});
+      const cnt=b.n>1?`<span class="cnt">${b.n}</span>`:'';
+      const ov=new kakao.maps.CustomOverlay({position:pos, content:`<div class="pin">${fmtEok(b.매매)}${cnt}</div>`, yAnchor:1, clickable:true});
       ov.setMap(map); overlays.push(ov); gb2.extend(pos); gs++;
     });
     if(gs) map.setBounds(gb2); else map.setLevel(scope==='1000'?6:scope==='500'?5:4);
-    $('mapHint').textContent='📍 핀=건물 갭(매매−전세) · 🟢 실측 · 🟠 공시126%';
+    $('mapHint').textContent='📍 핀=건물 중위 매매가(숫자=매매 거래수)';
     return;
   }
   // 건물 핀 (건물별 묶음, 최근순 200개)
@@ -620,55 +625,48 @@ async function renderGap(saleD, jeonD){
   jeonD.forEach(d=>{ const k=d.동+' '+d.번지; const b=(m[k]=m[k]||{동:d.동,번지:d.번지,건물명:d.건물명,s:[],j:[]}); b.j.push(d.보증금); });
   const withSale=Object.values(m).filter(b=>b.s.length);
   if(!withSale.length){ setStatus(`${scopeTxt} — 매매 실거래가 없어 갭 계산 불가. 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
-  // 전세 없는 번지 → 공시가 조회 (같은 법정동만)
+  // 갭 = 매매 − 공시가×126% → 모든 번지 공시가 조회 (같은 법정동만)
   const ac=pn($('f_area').value), at=pn($('f_areaTol').value)||0;
-  const estB=withSale.filter(b=>!b.j.length);
-  if(estB.length){
-    const seed=estB.find(b=>b.동===ctx.dong && pnuOf(b.번지));
-    if(seed){ setStatus('공시가 조회 중…'); await fetchGongsi(pnuOf(seed.번지)); }   // 기준연도 1회 선확정
-    let done=0;
-    await pool(estB, 4, async b=>{
-      b._items=null;
-      if(b.동===ctx.dong){ const pnu=pnuOf(b.번지); if(pnu){ const g=await fetchGongsi(pnu); if(g.items&&g.items.length) b._items=g.items; } }
-      done++; if(done%5===0||done===estB.length) setStatus(`공시가 조회 중… (${done}/${estB.length})`);
-    });
-  }
-  // 매매 실거래 1건 = 1행 (매매=실거래가, 전세=그 번지 실제전세 중위 or 공시가×126%)
+  const seed=withSale.find(b=>b.동===ctx.dong && pnuOf(b.번지));
+  if(seed){ setStatus('공시가 조회 중…'); await fetchGongsi(pnuOf(seed.번지)); }   // 기준연도 1회 선확정
+  let done=0;
+  await pool(withSale, 4, async b=>{
+    b._items=null;
+    if(b.동===ctx.dong){ const pnu=pnuOf(b.번지); if(pnu){ const g=await fetchGongsi(pnu); if(g.items&&g.items.length) b._items=g.items; } }
+    done++; if(done%8===0||done===withSale.length) setStatus(`공시가 조회 중… (${done}/${withSale.length})`);
+  });
+  // 매매 실거래 1건 = 1행. 갭 = 매매 − 전세(상한=공시가×126%)
   let noData=0; const rows=[];
   withSale.forEach(b=>{
-    const jeonseRef = b.j.length ? median(b.j) : null;
+    const jeonseReal = b.j.length ? Math.round(median(b.j)) : null;   // 그 번지 실제 전세 중위(참고)
     b.s.forEach(d=>{
       const 매매=d.금액만원; if(!(매매>0)) return;
       const 전용=d.전용면적!=null?+d.전용면적.toFixed(1):null, t=d.계약? new Date(d.계약).getTime():null;
-      let 전세=null, 타입=null;
-      if(jeonseRef!=null){ 전세=jeonseRef; 타입='real'; }
-      else if(b._items){ const won=gongsiMedianFor(b._items, d.전용면적||ac, at); if(won!=null){ 전세=Math.round(won/10000*1.26); 타입='공시'; } }
-      if(전세==null){ noData++; return; }
-      rows.push({건물명:b.건물명||'–', 동:b.동, 번지:b.번지, 전용, 매매, 전세, 갭:매매-전세, 율:Math.round(전세/매매*100), t, 계약:d.계약||'', 추정:타입!=='real', 타입});
+      let 상한=null;
+      if(b._items){ const won=gongsiMedianFor(b._items, d.전용면적||ac, at); if(won!=null) 상한=Math.round(won/10000*1.26); }
+      if(상한==null){ noData++; return; }   // 공시 없으면 갭 못 냄 → 제외
+      rows.push({계약:d.계약||'', 동:b.동, 건물명:b.건물명||'–', 번지:b.번지, 전용, 매매, 전세실측:jeonseReal, 상한, 갭:매매-상한, t, 실측:jeonseReal!=null});
     });
   });
-  rows.sort((a,b)=>{ if(a.t==null) return 1; if(b.t==null) return -1; return b.t-a.t; });   // 최신 계약 먼저(내림차순)
-  if(!rows.length){ setStatus(`${scopeTxt} — 갭 낼 거래가 없어요(전세·공시 모두 없음). 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
-  const realRows=rows.filter(r=>!r.추정), gN=rows.length-realRows.length;
-  const realRates=realRows.map(r=>r.율).filter(v=>v!=null && v<=120);   // 이상치(>120%) 제외
-  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · 매매 ${rows.length}건 (실측전세 ${realRows.length}${gN?` · 공시126% ${gN}`:''})${noData?` · 전세·공시없음 ${noData} 제외`:''}${filterLabel()}`);
+  rows.sort((a,b)=>{ if(a.t==null) return 1; if(b.t==null) return -1; return b.t-a.t; });   // 최신 매매계약일 먼저
+  if(!rows.length){ setStatus(`${scopeTxt} — 갭 낼 거래가 없어요(공시가 없음). 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
+  const realN=rows.filter(r=>r.실측).length;
+  setStatus(`${ctx.sido} ${ctx.sigungu} · ${scopeTxt} · 매매 ${rows.length}건${realN?` · 전세실측 ${realN}`:''}${noData?` · 공시없음 ${noData} 제외`:''}${filterLabel()}`);
   $('stats').innerHTML=[
     ['갭 거래수', rows.length+'건', false],
-    ['중위 갭', fmtEok(Math.round(median(rows.map(r=>r.갭)))), true],
-    ['평균 전세가율(실측)', realRates.length?Math.round(median(realRates))+'%':'–', false],
+    ['중위 갭(매매−공시126%)', fmtEok(Math.round(median(rows.map(r=>r.갭)))), true],
     ['중위 매매가', fmtEok(Math.round(median(rows.map(r=>r.매매)))), false],
+    ['중위 전세상한', fmtEok(Math.round(median(rows.map(r=>r.상한)))), false],
   ].map(s=>`<div class="stat"><div class="v ${s[2]?'green':''}">${s[1]}</div><div class="k">${s[0]}</div></div>`).join('');
   $('split').style.display='flex';
   drawGapChart(rows);
-  $('chartLegend').textContent='● 실측전세 · ○ 공시126% · 가로=매매 계약월 · 세로=갭(매매−전세) · 낮을수록 소액 투자';
+  $('chartLegend').textContent='● 전세실측 있음 · ○ 공시만 · ━ 분기 중위 갭 · 가로=매매 계약월 · 세로=갭(매매−공시126%)';
   $('tblTitle').textContent=`갭 분석 — ${scopeTxt}`;
   document.querySelector('.tbl-scroll').style.display='none';
   const gb=$('gapBox'); gb.style.display=''; gb.style.maxHeight='520px'; gb.style.overflow='auto';
   const MAX=400, shown=rows.slice(0,MAX);
   $('tblCount').textContent = rows.length>MAX?`표시 ${MAX}/총 ${rows.length}건`:`${rows.length}건`;
-  const badge=r=> r.타입==='real'?' <span style="font-size:10.5px;color:var(--accent2);font-weight:700">실측</span>'
-                : ' <span style="font-size:10.5px;color:#c0883a;font-weight:700">공시126%</span>';
-  gb.innerHTML=`<table><thead><tr><th class="l">건물</th><th class="l">동</th><th>전용</th><th>매매실거래</th><th>전세(상한)</th><th>갭</th><th>전세가율</th><th>계약</th></tr></thead><tbody>${shown.map(r=>`<tr${r.추정?' style="color:var(--sub)"':''}><td class="l">${r.건물명}${badge(r)}</td><td class="l">${r.동}</td><td>${r.전용!=null?r.전용+'㎡':'–'}</td><td><b>${fmtEok(r.매매)}</b></td><td>${r.추정?'~':''}${fmtEok(r.전세)}</td><td><b>${r.추정?'~':''}${fmtEok(r.갭)}</b></td><td>${r.율!=null?r.율+'%':'–'}</td><td style="font-size:11.5px">${(r.계약||'').slice(2)}</td></tr>`).join('')}</tbody></table><div class="hint" style="padding:8px 4px 2px;line-height:1.7;">갭 = <u>매매 실거래가</u> − 전세 · <b style="color:var(--accent2)">실측</b> 그 번지 전세 실거래 중위 · <b style="color:#c0883a">공시126%</b> 전세 없으면 공시가×126%(안전상한)${noData?` · 전세·공시 없는 ${noData}건 제외`:''}</div>`;
+  gb.innerHTML=`<table><thead><tr><th class="l">매매계약일</th><th class="l">동</th><th class="l">건물</th><th>전용</th><th>매매</th><th>전세(실측)</th><th>전세(상한)</th><th>갭</th></tr></thead><tbody>${shown.map(r=>`<tr><td class="l" style="font-size:11.5px">${r.계약}</td><td class="l">${r.동}</td><td class="l">${r.건물명}</td><td>${r.전용!=null?r.전용+'㎡':'–'}</td><td><b>${fmtEok(r.매매)}</b></td><td>${r.전세실측!=null?fmtEok(r.전세실측):'–'}</td><td>${fmtEok(r.상한)}</td><td><b>${fmtEok(r.갭)}</b></td></tr>`).join('')}</tbody></table><div class="hint" style="padding:8px 4px 2px;line-height:1.7;">갭 = <u>매매 실거래가 − 전세(상한)</u> · <b>전세(상한)</b> = 공동주택 공시가격×126%(HUG 안전 전세상한) · <b>전세(실측)</b> = 그 번지 실제 전세 거래 중위(참고)${noData?` · 공시 없는 ${noData}건 제외`:''}</div>`;
   lastDeals=[]; gapRows=rows; renderMap(); showJibunSummary();
 }
 
