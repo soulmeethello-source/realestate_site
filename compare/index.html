@@ -33,10 +33,10 @@
         .container { max-width: 1000px; margin: 0 auto; padding: 0 18px 64px; }
         .card { background: #fff; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.07); padding: 20px 22px; margin-top: -28px; position: relative; z-index: 10; }
 
-        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 16px 20px; align-items: end; }
+        .controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 20px; align-items: end; }
         .ctrl > span { display:block; font-size: 11.5px; font-weight: 700; color: #888; margin-bottom: 6px; }
         .ctrl .row { display: flex; align-items: center; gap: 6px; }
-        .ctrl input[type=number], .ctrl input[type=text], .ctrl select { width: 100%; padding: 8px 9px; border: 1px solid #dde1e6; border-radius: 9px; font-size: 13.5px; font-family: inherit; outline: none; background:#fff; }
+        .ctrl input[type=number], .ctrl input[type=text], .ctrl select { width: 100%; height: 35px; padding: 0 9px; border: 1px solid #dde1e6; border-radius: 9px; font-size: 13.5px; font-family: inherit; outline: none; background:#fff; }
         .ctrl input:focus, .ctrl select:focus { border-color: #007AFF; }
         .ctrl .pm { color:#aaa; font-size:12px; white-space:nowrap; }
         .ctrl .unit { color:#aaa; font-size:12px; }
@@ -64,6 +64,7 @@
         .footer { text-align: center; padding: 26px 24px; color: #999; font-size: 12px; }
         .footer a { color:#007AFF; text-decoration:none; } .footer a:hover{ text-decoration:underline; }
         .footer-contact { margin-top: 8px; font-size: 13px; }
+        @media (max-width:760px){ .controls{ grid-template-columns:repeat(2,1fr); } }
         @media (max-width:600px){ .header h1{font-size:22px;} .chart-wrap{height:300px;} }
         .notice { background:#eef5ff; border:1px solid #cfe2ff; color:#0b5cad; border-radius:10px; padding:10px 14px; font-size:13px; margin-bottom:18px; }
         .qlinks { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:11px; }
