@@ -33,17 +33,18 @@ body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Ne
 .card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:14px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
 .controls{ display:grid; grid-template-columns:1fr; gap:10px; }
 .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.grp{ display:inline-flex; align-items:center; gap:6px; }
 .lbl{ font-size:11.5px; font-weight:700; color:#888; }
 [data-theme="dark"] .lbl{ color:var(--sub); }
 .pm{ color:#aaa; font-weight:400; font-size:12px; }
 .unit{ color:#aaa; font-size:12px; margin-left:1px; }
-input[type=text], select{ padding:10px 12px; border:1px solid var(--line); border-radius:9px; font-size:14px; font-family:inherit; background:var(--card); color:var(--ink); outline:none; }
+input[type=text], select{ height:40px; padding:0 12px; border:1px solid var(--line); border-radius:9px; font-size:14px; font-family:inherit; background:var(--card); color:var(--ink); outline:none; }
 input[type=text]:focus, select:focus{ border-color:var(--accent); }
 #q_addr{ flex:1; min-width:200px; }
-.btn{ padding:10px 18px; border:none; border-radius:9px; background:var(--accent); color:#fff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
+.btn{ height:40px; padding:0 18px; border:none; border-radius:9px; background:var(--accent); color:#fff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; }
 .btn:disabled{ opacity:0.5; cursor:default; }
-.seg{ display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; }
-.seg button{ border:none; background:var(--card); color:var(--ink); padding:8px 12px; font-size:13px; cursor:pointer; font-family:inherit; border-right:1px solid var(--line); }
+.seg{ display:inline-flex; height:40px; border:1px solid var(--line); border-radius:9px; overflow:hidden; }
+.seg button{ display:flex; align-items:center; border:none; background:var(--card); color:var(--ink); padding:0 12px; font-size:13px; cursor:pointer; font-family:inherit; border-right:1px solid var(--line); }
 .seg button:last-child{ border-right:none; }
 .seg button.on{ background:var(--accent); color:#fff; font-weight:700; }
 .status{ font-size:13px; color:var(--sub); margin-top:10px; min-height:18px; }
@@ -90,7 +91,7 @@ td.l,th.l{ text-align:left; }
 .pin{ background:#6b3df5; color:#fff; font-size:11px; font-weight:700; padding:3px 7px; border-radius:7px; white-space:nowrap; box-shadow:0 1px 5px rgba(0,0,0,0.3); transform:translateY(-4px); }
 .pin .cnt{ background:#fff; color:#6b3df5; border-radius:8px; padding:0 4px; margin-left:4px; font-size:10px; }
 .ctr-pin{ font-size:26px; line-height:1; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
-@media(max-width:860px){ .split{ flex-direction:column; } .split .right{ width:100%; max-width:none; position:static; } #map{ height:380px; } }
+@media(max-width:860px){ .split{ flex-direction:column; } .split .left{ width:100%; min-width:0; } .split .left .card{ width:100%; min-width:0; } .split .right{ width:100%; max-width:none; position:static; } #map{ height:380px; } }
 @media(max-width:640px){ .stats{ grid-template-columns:repeat(2,1fr);} header.top h1{font-size:18px;} }
 </style>
 </head>
@@ -101,6 +102,7 @@ td.l,th.l{ text-align:left; }
   <p>국토교통부 실거래가 기준 · 연립다세대(빌라) · 법정동·반경(100m·500m·1km)별 그래프·표</p>
   <div class="header-links">
     <a class="home-link" href="/">← 부동산 사이트 모음</a>
+    <a class="home-link" href="/find/">💰 내 예산 동네찾기</a>
     <a class="home-link" href="/auction/">🧮 경매 수익률 계산기</a>
     <a class="home-link" href="/compare/">&#128202; 빌라 시세비교</a>
     <a class="home-link" href="/map/">🗺️ 빌라 지도</a>
@@ -116,20 +118,20 @@ td.l,th.l{ text-align:left; }
         <button class="btn" id="q_run">조회</button>
       </div>
       <div class="row">
-        <span class="lbl">범위</span>
-        <span class="seg" id="seg_scope">
-          <button data-v="dong" class="on">법정동</button>
-          <button data-v="100">반경 100m</button>
-          <button data-v="500">반경 500m</button>
-          <button data-v="1000">반경 1km</button>
-        </span>
-        <span class="lbl" style="margin-left:6px;">기간</span>
-        <select id="q_years">
-          <option value="1" selected>최근 1년</option>
-          <option value="2">최근 2년</option>
-          <option value="3">최근 3년</option>
-          <option value="5">최근 5년</option>
-        </select>
+        <span class="grp"><span class="lbl">범위</span>
+          <span class="seg" id="seg_scope">
+            <button data-v="dong" class="on">법정동</button>
+            <button data-v="100">100m</button>
+            <button data-v="500">500m</button>
+            <button data-v="1000">1km</button>
+          </span></span>
+        <span class="grp"><span class="lbl">기간</span>
+          <select id="q_years">
+            <option value="1" selected>최근 1년</option>
+            <option value="2">최근 2년</option>
+            <option value="3">최근 3년</option>
+            <option value="5">최근 5년</option>
+          </select></span>
       </div>
       <div class="row">
         <span class="lbl">거래유형</span>
@@ -140,15 +142,15 @@ td.l,th.l{ text-align:left; }
           <button data-k="gap">갭(매매−전세)</button>
         </span>
       </div>
-      <div class="row" style="gap:6px;">
-        <span class="lbl">전용면적</span>
-        <input type="text" id="f_area" inputmode="decimal" value="59" placeholder="중심 ㎡" style="width:84px;padding:8px 10px;">
-        <span class="pm">±</span>
-        <input type="text" id="f_areaTol" inputmode="decimal" value="3" placeholder="오차" style="width:60px;padding:8px 10px;"><span class="unit">㎡</span>
-        <span class="lbl" style="margin-left:12px;">건축연도</span>
-        <input type="text" id="f_yr" inputmode="numeric" value="2001" placeholder="중심" style="width:78px;padding:8px 10px;">
-        <span class="pm">±</span>
-        <input type="text" id="f_yrTol" inputmode="numeric" value="2" placeholder="오차" style="width:60px;padding:8px 10px;"><span class="unit">년</span>
+      <div class="row" style="gap:10px;">
+        <span class="grp"><span class="lbl">전용면적</span>
+          <input type="text" id="f_area" inputmode="decimal" value="59" placeholder="중심 ㎡" style="width:72px;">
+          <span class="pm">±</span>
+          <input type="text" id="f_areaTol" inputmode="decimal" value="3" placeholder="오차" style="width:54px;"><span class="unit">㎡</span></span>
+        <span class="grp"><span class="lbl">건축연도</span>
+          <input type="text" id="f_yr" inputmode="numeric" value="2001" placeholder="중심" style="width:72px;">
+          <span class="pm">±</span>
+          <input type="text" id="f_yrTol" inputmode="numeric" value="2" placeholder="오차" style="width:54px;"><span class="unit">년</span></span>
         <span class="pm">(비우면 전체)</span>
       </div>
     </div>
@@ -227,7 +229,7 @@ td.l,th.l{ text-align:left; }
     <div class="footer-contact">사이트 추가, 기능 건의, 오류 제보 &middot; <a href="mailto:chiyohappy@gmail.com?subject=%5B%EB%B6%80%EB%8F%99%EC%82%B0%20%EC%82%AC%EC%9D%B4%ED%8A%B8%20%EB%AA%A8%EC%9D%8C%5D">chiyohappy@gmail.com</a></div>
     <div class="footer-contact">오늘 조회수: <span id="visitor-today">-</span></div>
     <div class="footer-contact">누적 조회수: <span id="visitor-total">-</span></div>
-    <div class="footer-contact" style="opacity:.55;font-size:11px;">v0.0.3</div>
+    <div class="footer-contact" style="opacity:.55;font-size:11px;">v0.0.4</div>
   </div>
 </div>
 <script data-goatcounter="https://soulmeethello.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
@@ -630,14 +632,16 @@ async function renderGap(saleD, jeonD){
   jeonD.forEach(d=>{ const k=d.동+' '+d.번지; const b=(m[k]=m[k]||{동:d.동,번지:d.번지,건물명:d.건물명,s:[],j:[]}); b.j.push(d.보증금); });
   const withSale=Object.values(m).filter(b=>b.s.length);
   if(!withSale.length){ setStatus(`${scopeTxt} — 매매 실거래가 없어 갭 계산 불가. 범위를 넓혀보세요.`, true); $('split').style.display='none'; return; }
-  // 갭 = 매매 − 공시가×126% → 모든 번지 공시가 조회 (같은 법정동만)
+  // 갭 = 매매 − (거래년도) 공시가×126% → 번지별로 거래년도들의 공시가 조회 (같은 법정동만)
   const ac=pn($('f_area').value), at=pn($('f_areaTol').value)||0;
-  const seed=withSale.find(b=>b.동===ctx.dong && pnuOf(b.번지));
-  if(seed){ setStatus('공시가 조회 중…'); await fetchGongsi(pnuOf(seed.번지)); }   // 기준연도 1회 선확정
   let done=0;
   await pool(withSale, 4, async b=>{
-    b._items=null;
-    if(b.동===ctx.dong){ const pnu=pnuOf(b.번지); if(pnu){ const g=await fetchGongsi(pnu); if(g.items&&g.items.length) b._items=g.items; } }
+    b._byYear={};
+    if(b.동===ctx.dong){ const pnu=pnuOf(b.번지);
+      if(pnu){ const years=[...new Set(b.s.map(d=>(d.계약||'').slice(0,4)).filter(Boolean))];
+        for(const y of years){ const g=await fetchGongsiY(pnu, y); if(g.items.length) b._byYear[y]={year:g.year, items:g.items}; }
+      }
+    }
     done++; if(done%8===0||done===withSale.length) setStatus(`공시가 조회 중… (${done}/${withSale.length})`);
   });
   // 매매 실거래 1건 = 1행. 갭 = 매매 − 전세(상한=공시가×126%)
@@ -647,10 +651,12 @@ async function renderGap(saleD, jeonD){
     b.s.forEach(d=>{
       const 매매=d.금액만원; if(!(매매>0)) return;
       const 전용=d.전용면적!=null?+d.전용면적.toFixed(1):null, t=d.계약? new Date(d.계약).getTime():null;
-      let 상한=null;
-      if(b._items){ const won=gongsiMedianFor(b._items, d.전용면적||ac, at); if(won!=null) 상한=Math.round(won/10000*1.26); }
+      const yr=(d.계약||'').slice(0,4);
+      const gy = b._byYear[yr] || b._byYear[Object.keys(b._byYear)[0]];   // 거래년도 공시 우선, 없으면 보유 연도
+      let 상한=null, 공시연도=null;
+      if(gy){ const won=gongsiMedianFor(gy.items, d.전용면적||ac, at); if(won!=null){ 상한=Math.round(won/10000*1.26); 공시연도=gy.year; } }
       if(상한==null){ noData++; return; }   // 공시 없으면 갭 못 냄 → 제외
-      rows.push({계약:d.계약||'', 동:b.동, 건물명:b.건물명||'–', 번지:b.번지, 전용, 매매, 전세실측:jeonseReal, 상한, 갭:매매-상한, t, 실측:jeonseReal!=null});
+      rows.push({계약:d.계약||'', 동:b.동, 건물명:b.건물명||'–', 번지:b.번지, 전용, 매매, 전세실측:jeonseReal, 상한, 공시연도, 갭:매매-상한, t, 실측:jeonseReal!=null});
     });
   });
   rows.sort((a,b)=>{ if(a.t==null) return 1; if(b.t==null) return -1; return b.t-a.t; });   // 최신 매매계약일 먼저
@@ -671,13 +677,13 @@ async function renderGap(saleD, jeonD){
   const gb=$('gapBox'); gb.style.display=''; gb.style.maxHeight='520px'; gb.style.overflow='auto';
   const MAX=400, shown=rows.slice(0,MAX);
   $('tblCount').textContent = rows.length>MAX?`표시 ${MAX}/총 ${rows.length}건`:`${rows.length}건`;
-  gb.innerHTML=`<table><thead><tr><th class="l">매매계약일</th><th class="l">동</th><th class="l">건물</th><th>전용</th><th>매매</th><th>전세(실측)</th><th>전세(상한)</th><th>갭</th></tr></thead><tbody>${shown.map(r=>`<tr data-b="${r.동} ${r.번지}"><td class="l" style="font-size:11.5px">${r.계약}</td><td class="l">${r.동}</td><td class="l">${r.건물명}</td><td>${r.전용!=null?r.전용+'㎡':'–'}</td><td><b>${fmtEok(r.매매)}</b></td><td>${r.전세실측!=null?fmtEok(r.전세실측):'–'}</td><td>${fmtEok(r.상한)}</td><td><b>${fmtEok(r.갭)}</b></td></tr>`).join('')}</tbody></table><div class="hint" style="padding:8px 4px 2px;line-height:1.7;">갭 = <u>매매 실거래가 − 전세(상한)</u> · <b>전세(상한)</b> = 공동주택 공시가격×126%(HUG 안전 전세상한) · <b>전세(실측)</b> = 그 번지 실제 전세 거래 중위(참고)${noData?` · 공시 없는 ${noData}건 제외`:''}</div>`;
+  gb.innerHTML=`<table><thead><tr><th class="l">매매계약일</th><th class="l">동</th><th class="l">건물</th><th>전용</th><th>매매</th><th>전세(실측)</th><th>전세(상한)</th><th>갭</th></tr></thead><tbody>${shown.map(r=>`<tr data-b="${r.동} ${r.번지}"><td class="l" style="font-size:11.5px">${r.계약}</td><td class="l">${r.동}</td><td class="l">${r.건물명}</td><td>${r.전용!=null?r.전용+'㎡':'–'}</td><td><b>${fmtEok(r.매매)}</b></td><td>${r.전세실측!=null?fmtEok(r.전세실측):'–'}</td><td>${fmtEok(r.상한)}${r.공시연도?`<span style="opacity:.55;font-size:10.5px"> '${String(r.공시연도).slice(2)}</span>`:''}</td><td><b>${fmtEok(r.갭)}</b></td></tr>`).join('')}</tbody></table><div class="hint" style="padding:8px 4px 2px;line-height:1.7;">갭 = <u>매매 실거래가 − 전세(상한)</u> · <b>전세(상한)</b> = <u>거래년도 공시가격</u>×126%(HUG 안전 전세상한, 상한 옆 작은숫자=공시연도) · <b>전세(실측)</b> = 그 번지 실제 전세 거래 중위(참고)${noData?` · 공시 없는 ${noData}건 제외`:''}</div>`;
   lastDeals=[]; gapRows=rows; renderMap(); showJibunSummary();
 }
 
 // ---- 입력한 번지(예: 354-1) 거래 요약 ----
 function jibunOf(addr){ const t=(addr||'').trim().split(/\s+/); const last=t[t.length-1]; return /^\d+(-\d+)?$/.test(last)?last:''; }
-function showJibunSummary(){
+async function showJibunSummary(){
   const box=$('jibunBox'); const jb=jibunOf($('q_addr').value);
   if(!jb || !ctx || kind==='gap'){ box.style.display='none'; return; }
   const c=KCFG[kind], KNAME={sale:'매매',jeonse:'전세',wolse:'월세'};
@@ -706,14 +712,25 @@ function showJibunSummary(){
         est=`<div style="margin-top:3px;color:var(--sub)">선택 <b>${area}±${aTol}㎡</b>는 이 건물에 거래 없음</div>`;
       }
     }
-    const list=rows.map(r=>`<div style="margin-top:3px${r.match?';color:var(--accent);font-weight:600':''}">${r.match?'▸':'·'} 전용 ${isNaN(r.ar)?'?':r.ar}㎡${r.py?`(${r.py}평)`:''} · ${r.n}건 · 중위 ${r.mid!=null?fmtEok(r.mid):'–'} · 최근 ${r.recent.계약}</div>`).join('');
+    // 이 번지 공시가 불러와 평형별로 매칭
+    const g = await fetchGongsi(pnuOf(jb));
+    if(jibunOf($('q_addr').value)!==jb) return;   // 그새 입력 바뀌면 취소
+    const hasG = !!(g.items && g.items.length);
+    const gMan = ar => { if(isNaN(ar)||!hasG) return null; const w=gongsiMedianFor(g.items, ar, 1.5); return w!=null?Math.round(w/10000):null; };
+    const list=rows.map(r=>{
+      const gm=gMan(r.ar);
+      const gtxt = gm!=null ? ` · 공시 <b>${fmtEok(gm)}</b><span style="opacity:.7"> ×126% ${fmtEok(Math.round(gm*1.26))}</span>` : '';
+      return `<div style="margin-top:3px${r.match?';color:var(--accent);font-weight:600':''}">${r.match?'▸':'·'} 전용 ${isNaN(r.ar)?'?':r.ar}㎡${r.py?`(${r.py}평)`:''} · ${r.n}건 · ${r.n>1?'중위 ':''}${r.mid!=null?fmtEok(r.mid):'–'}${gtxt} · 최근 ${r.recent.계약}</div>`;
+    }).join('');
+    const hoSection = hasG ? gongsiHoDetails(g.items, g.year) : '';
     box.innerHTML=`<div style="background:var(--card);border:1.5px solid var(--accent);border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.6;">
       📍 <b>${ctx.dong} ${jb}</b>${bn?` · ${bn}`:''} — 이 번지 <b>${KNAME[kind]} ${hits.length}건</b>
       ${est}
-      <div style="margin-top:7px;font-size:12px;color:var(--sub)">평형별 (▸ 선택 면적)</div>
+      <div style="margin-top:7px;font-size:12px;color:var(--sub)">평형별 (▸ 선택 면적)${hasG?` · 🏛️ 공시가 ${g.year}.1.1 기준`:''}</div>
       ${list}
+      ${hoSection}
     </div>`;
-    box.style.display=''; appendGongsi(jb); return;
+    box.style.display=''; return;
   }
   // 거래 없는 번지 → 면적 × 동네 중위 평단가로 추정 (매매/전세)
   const pps=lastDeals.map(d=>d._pp).filter(v=>v!=null);
@@ -736,7 +753,7 @@ async function pool(items, n, fn){
 }
 // ---- 공동주택 공시가격 (vWorld) ----
 let gongsiCache={}, gYear=null;
-const G_CANDIDATES=['2026','2025','2024'];
+const G_CANDIDATES=[0,1,2].map(i=>String(new Date().getFullYear()-i));   // 현재년도부터 최근 3년
 function pnuOf(jb){
   if(!ctx || !ctx.lawd10 || ctx.lawd10.length<10 || !jb) return '';
   const m=String(jb).match(/^(\d+)(?:-(\d+))?$/); if(!m) return '';
@@ -764,6 +781,17 @@ async function fetchGongsi(pnu){
   if(!sawErr) gongsiCache[pnu]=out;   // 진짜 0건이면 캐시 / 에러였으면 캐시 안 함(재시도 여지)
   return out;
 }
+// 특정 거래년도 공시가 (정확 연도 우선, 없으면 근접 연도로 폴백) → {year, items}
+let gongsiYCache={};
+async function fetchGongsiY(pnu, year){
+  const k=pnu+'|'+year; if(gongsiYCache[k]) return gongsiYCache[k];
+  const y=+year, cand=[String(y), String(y-1), String(y+1)];
+  for(const c of cand){
+    const res=await gongsiCall(pnu, c);
+    if(res.ok && res.items.length) return (gongsiYCache[k]={year:c, items:res.items});
+  }
+  return (gongsiYCache[k]={year:String(y), items:[]});
+}
 // 목표 면적에 맞는 공시가 중위(원). 없으면 가장 가까운 면적으로 폴백.
 function gongsiMedianFor(items, target, tol){
   if(!items || !items.length) return null;
@@ -776,12 +804,31 @@ function gongsiMedianFor(items, target, tol){
   const gv=band.map(x=>x.공시가).filter(v=>v!=null);
   return gv.length ? median(gv) : null;
 }
-// 번지 카드에 공시가 + ×126%(전세 안전상한) 라인 추가
+// 호별 공시가 펼쳐보기(details) HTML — 거래 유무 무관 공용
+function gongsiHoDetails(items, year){
+  const seen=new Set();
+  const hl=[...items].filter(x=>x.공시가!=null)
+    .filter(x=>{ const k=(x.호||'')+'|'+(x.전용면적||''); if(seen.has(k)) return false; seen.add(k); return true; })
+    .sort((a,b)=>((a.전용면적||0)-(b.전용면적||0))||((parseInt(a.호)||0)-(parseInt(b.호)||0)));
+  if(!hl.length) return '';
+  const MAXHO=40, head=hl.slice(0,MAXHO);
+  const hoTxt=head.map(x=>{ const man=Math.round(x.공시가/10000);
+    return `<div style="margin-top:2px">${x.호?`<b>${x.호}호</b>`:'–'}${x.층!=null?`<span style="opacity:.6">(${x.층}층)</span>`:''} · ${x.전용면적!=null?x.전용면적+'㎡':''} · 공시 <b>${fmtEok(man)}</b><span style="opacity:.7"> ×126% ${fmtEok(Math.round(man*1.26))}</span></div>`;
+  }).join('');
+  return `<details style="margin-top:9px"><summary style="font-size:12px;color:var(--accent);cursor:pointer;user-select:none">🏛️ 호별 공시가 펼쳐보기 (${year}.1.1 기준, ${hl.length}호${hl.length>MAXHO?`·상위 ${MAXHO}`:''})</summary><div style="margin-top:4px;max-height:240px;overflow:auto">${hoTxt}</div></details>`;
+}
+// 번지 카드에 공시가(중위 + ×126%) + 호별 토글 추가 (거래 없는 번지용)
 async function appendGongsi(jb){
   const pnu=pnuOf(jb); if(!pnu) return;
   const {year, items}=await fetchGongsi(pnu);
   const box=$('jibunBox'); if(jibunOf($('q_addr').value)!==jb || !box.firstElementChild) return;
-  if(!items.length) return;
+  const card=box.firstElementChild;
+  if(!items.length){
+    const d=document.createElement('div');
+    d.style.cssText='margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;color:var(--sub)';
+    d.innerHTML='🏛️ 공시가 없음 (이 번지는 공동주택 공시 대상이 아니거나 신축·미공시)';
+    card.appendChild(d); return;
+  }
   const ac=pn($('f_area').value), at=pn($('f_areaTol').value)||0;
   let band, note;
   if(ac>0){
@@ -789,19 +836,21 @@ async function appendGongsi(jb){
     if(band.length){ note=`전용 ${ac}±${at}㎡`; }
     else {  // 선택 면적 없음 → 가장 가까운 면적
       const areas=[...new Set(items.map(x=>x.전용면적).filter(v=>v!=null))];
-      if(!areas.length) return;
-      const near=areas.reduce((a,b)=>Math.abs(b-ac)<Math.abs(a-ac)?b:a);
-      band=items.filter(x=>x.전용면적===near);
-      note=`전용 ${near}㎡ · 선택 ${ac}±${at}㎡ 없어 근접`;
+      const near=areas.length?areas.reduce((a,b)=>Math.abs(b-ac)<Math.abs(a-ac)?b:a):null;
+      band=near!=null?items.filter(x=>x.전용면적===near):items;
+      note=near!=null?`전용 ${near}㎡ · 선택 ${ac}±${at}㎡ 없어 근접`:'전체 면적';
     }
   } else { band=items; note='전체 면적'; }
-  const gv=band.map(x=>x.공시가).filter(v=>v!=null); if(!gv.length) return;
-  const valMan=Math.round(median(gv)/10000), safe=Math.round(valMan*1.26);
-  const agg = band.length>1 ? '중위 ' : '';
-  const line=document.createElement('div');
-  line.style.cssText='margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--sub)';
-  line.innerHTML=`🏛️ 공시가 ${year} ${agg}<b>${fmtEok(valMan)}</b> <span style="opacity:.8">(${note} · ${band.length}호)</span> · ×126% 안전 전세상한 <b style="color:var(--accent)">${fmtEok(safe)}</b>`;
-  box.firstElementChild.appendChild(line);
+  const gv=band.map(x=>x.공시가).filter(v=>v!=null);
+  if(gv.length){
+    const valMan=Math.round(median(gv)/10000), safe=Math.round(valMan*1.26);
+    const agg = band.length>1 ? '중위 ' : '';
+    const line=document.createElement('div');
+    line.style.cssText='margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--sub)';
+    line.innerHTML=`🏛️ 공시가 ${year}.1.1 기준 ${agg}<b>${fmtEok(valMan)}</b> <span style="opacity:.8">(${note} · ${band.length}호)</span> · ×126% 안전 전세상한 <b style="color:var(--accent)">${fmtEok(safe)}</b>`;
+    card.appendChild(line);
+  }
+  card.insertAdjacentHTML('beforeend', gongsiHoDetails(items, year));
 }
 
 function setStatus(t, err){ const el=$('status'); el.innerHTML=t; el.className='status'+(err?' err':''); }
